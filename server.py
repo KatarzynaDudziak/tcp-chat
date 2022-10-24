@@ -1,31 +1,40 @@
 import socket
 from threading import Thread
 
-HOST = '127.0.0.1'
-PORT = 3888
 
-
-def create_socket():
+def create_socket(host, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((HOST, PORT))
+    s.bind((host, port))
     s.listen()
     return s
 
 
-def handle_client(socket, clients):
+def handle_clients(socket, clients):
     while True:
-        conn, addr = socket.accept()
-        conn.send('nick'.encode())
-        nickname = conn.recv(1024).decode()
-        clients[addr] = (conn, nickname)
+        handle_one_client(socket, clients)
 
-        server_messages(clients, addr)
 
+def handle_one_client(socket, clients):
+    try:
+        addr = accept_client(socket, clients)
+        
         thread_handle_message = Thread(target=handle_message, args=(clients, addr))
         thread_handle_message.start()
+    except Exception as ex:
+        print(ex)
+        socket.close()
 
 
-def server_messages(clients, addr):
+def accept_client(socket, clients):
+    conn, addr = socket.accept()
+    conn.send('nick'.encode())
+    nickname = conn.recv(1024).decode()
+    clients[addr] = (conn, nickname)
+    send_server_messages_on_client_join(clients, addr)
+    return addr
+
+
+def send_server_messages_on_client_join(clients, addr):
     nickname = get_nickname(clients, addr)
     conn = get_connection(clients, addr)
 
@@ -73,13 +82,18 @@ def broadcast(message, clients, addr):
 
 
 def main():
+    HOST = '127.0.0.1'
+    PORT = 3888
     clients = dict()
 
-    socket = create_socket()
-    thread_handle_client = Thread(target=handle_client, args=(socket, clients))
+    socket = create_socket(HOST, PORT)
+    thread_handle_clients = Thread(target=handle_clients, args=(socket, clients))
 
-    thread_handle_client.start()
-    thread_handle_client.join()
+    try:
+        thread_handle_clients.start()
+        thread_handle_clients.join()
+    except:
+        socket.close()
 
 
 if __name__ == "__main__":
