@@ -65,3 +65,34 @@ def test_adding_client_with_nickname():
     accept_client(mock_socket, clients)
     assert clients['addr'] == (mock_conn, 'nick')
 
+
+def test_returning_addr():
+    mock_socket = MagicMock()
+    clients = dict()
+    mock_conn = MagicMock()
+    mock_socket.accept.return_value = (mock_conn, 'addr')
+    assert accept_client(mock_socket, clients) == 'addr'
+
+
+@mock.patch('server.get_connection')
+@mock.patch('server.get_nickname')
+def test_send_server_message(mock_get_nickname, mock_get_connection):
+    mock_clients = MagicMock()
+    addr = 'addr'
+    mock_get_nickname.return_value = 'nick'
+    send_server_messages_on_client_join(mock_clients, addr)
+    message = 'Hello nick from server to client'
+    mock_get_connection.return_value.send.assert_called_once_with(message.encode())
+
+
+def test_returning_nickname():
+    clients = {'addr': ('conn', 'nickname')}
+    assert get_nickname(clients, 'addr') == 'nickname'
+
+
+def test_returning_connection():
+    clients = {'addr': ('conn', 'nickname')}
+    assert get_connection(clients, 'addr') == 'conn'
+
+
+
