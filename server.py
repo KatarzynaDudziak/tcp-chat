@@ -18,7 +18,7 @@ def handle_one_client(socket, clients):
     try:
         addr = accept_client(socket, clients)
         
-        thread_handle_message = Thread(target=handle_message, args=(clients, addr))
+        thread_handle_message = Thread(target=handle_messages, args=(clients, addr))
         thread_handle_message.start()
     except Exception as ex:
         print(ex)
@@ -44,39 +44,49 @@ def send_server_messages_on_client_join(clients, addr):
     broadcast(f'{nickname} joined to server', clients, addr)
 
 
+#test na brak adresu
 def get_nickname(clients, addr):
     nickname = clients[addr][1]
     return nickname
 
 
+#test na brak conn
 def get_connection(clients, addr):
-    conn = clients[addr][0]
-    return conn
+    try:
+        conn = clients[addr][0]
+        return conn
+    except:
+        print('nima')
 
 
-def handle_message(clients, addr):
+def handle_messages(clients, addr):
+    while len(clients) > 0:
+        handle_messages_for_client(clients, addr)
+    print('No clients connected')
+
+
+def handle_messages_for_client(clients, addr):
     nickname = get_nickname(clients, addr)
     conn = get_connection(clients, addr)
 
-    while True:
-        try:
-            received_data = conn.recv(1024)
-            if not received_data:
-                broadcast(f'{nickname} left from server', clients, addr)
-                del clients[addr]
-                break
+    handle_received_data(clients, addr, nickname, conn)
 
-            message = received_data.decode()
-            broadcast(message, clients, addr)
-        except:
-            del clients[addr]
-            break
+
+def handle_received_data(clients, addr, nickname, conn):
+    received_data = conn.recv(1024)
+    if not received_data:
+        broadcast(f'{nickname} left from server', clients, addr)
+        del clients[addr]
+        return
+
+    message = received_data.decode()
+    broadcast(message, clients, addr)
 
 
 def broadcast(message, clients, addr):
     connection = get_connection(clients, addr)
 
-    for conn, _ in clients.values():
+    for conn, addr in clients.values():
         if conn != connection:
             conn.send(message.encode())
 
