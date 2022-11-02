@@ -90,9 +90,64 @@ def test_returning_nickname():
     assert get_nickname(clients, 'addr') == 'nickname'
 
 
+def test_no_nickname_in_clients():
+    clients = {'addr' : 'conn'}
+    with pytest.raises(KeyError):
+        get_nickname(clients, 'addr2')
+
+
 def test_returning_connection():
     clients = {'addr': ('conn', 'nickname')}
     assert get_connection(clients, 'addr') == 'conn'
 
+
+def test_no_connection_in_clients():
+    clients = {'addr': 'nickname'}
+    with pytest.raises(KeyError):
+        get_connection(clients, 'addr2')
+
+
+def test_recv_valid_data():
+    mock_conn = MagicMock()
+    mock_clients = MagicMock()
+    handle_received_data(mock_clients, 'addr', 'nickname', mock_conn)
+    mock_conn.recv.assert_called_once_with(1024)
+    mock_conn.recv.return_value.decode.assert_called_once()
+
+
+@mock.patch('server.broadcast')
+def test_run_broadcast_if_valid_data(mock_broadcast):
+    mock_conn = MagicMock()
+    mock_clients = MagicMock()
+    handle_received_data(mock_clients, 'addr', 'nickname', mock_conn)
+    mock_conn.recv.assert_called_once_with(1024)
+    message = mock_conn.recv.return_value.decode.return_value
+    mock_broadcast.assert_called_once_with(message, mock_clients, 'addr')
+
+
+def test_del_user_if_recv_invalid_data():
+    mock_conn = MagicMock()
+    clients = {'addr' : ('conn', 'nickname')}
+    mock_conn.recv.return_value = False
+    handle_received_data(clients, 'addr', 'nickname', mock_conn)
+    assert len(clients) == 0
+
+
+@mock.patch('server.broadcast')
+def test_run_broadcast_if_invalid_data(mock_broadcast):
+    mock_conn = MagicMock()
+    clients = {'addr' : ('conn', 'nickname')}
+    mock_conn.recv.return_value = False
+    handle_received_data(clients, 'addr', 'nickname', mock_conn)
+    message = 'nickname left from server'
+    mock_broadcast.assert_called_once_with(message, clients, 'addr')
+
+
+@mock.patch('server.get_connection')
+def test_broadcast(mock_get_connection):
+    mock_conn = MagicMock()
+    clients = {'addr': (mock_conn, 'addr')}
+    broadcast('message', clients, 'addr')
+    mock_conn.send.assert_called_once_with('message'.encode())
 
 
