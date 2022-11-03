@@ -15,14 +15,10 @@ def handle_clients(socket, clients):
 
 
 def handle_one_client(socket, clients):
-    try:
-        addr = accept_client(socket, clients)
+    addr = accept_client(socket, clients)
         
-        thread_handle_message = Thread(target=handle_messages, args=(clients, addr))
-        thread_handle_message.start()
-    except Exception as ex:
-        print(ex)
-        socket.close()
+    thread_handle_message = Thread(target=handle_messages, args=(clients, addr))
+    thread_handle_message.start()
 
 
 def accept_client(socket, clients):
@@ -44,25 +40,19 @@ def send_server_messages_on_client_join(clients, addr):
     broadcast(f'{nickname} joined to server', clients, addr)
 
 
-#test na brak adresu
 def get_nickname(clients, addr):
     nickname = clients[addr][1]
     return nickname
 
 
-#test na brak conn
 def get_connection(clients, addr):
-    try:
-        conn = clients[addr][0]
-        return conn
-    except:
-        print('nima')
+    conn = clients[addr][0]
+    return conn
 
 
 def handle_messages(clients, addr):
     while len(clients) > 0:
         handle_messages_for_client(clients, addr)
-    print('No clients connected')
 
 
 def handle_messages_for_client(clients, addr):
