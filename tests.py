@@ -28,6 +28,16 @@ def test_socket_listen(mock_socket):
     mock_socket.return_value.listen.assert_called_once()
 
 
+@mock.patch('server.Thread')
+@mock.patch('server.accept_client')
+def test_handle_one_client(mock_accept_client, mock_Thread):
+    mock_socket = MagicMock()
+    mock_clients = MagicMock()
+    handle_one_client(mock_socket, mock_clients)
+    mock_accept_client.assert_called_once_with(mock_socket, mock_clients)
+    mock_Thread.return_value.start.assert_called_once
+
+
 def test_socket_accept():
     mock_socket = MagicMock()
     mock_clients = MagicMock()
@@ -86,7 +96,7 @@ def test_send_server_message(mock_get_nickname, mock_get_connection):
 
 
 def test_returning_nickname():
-    clients = {'addr': ('conn', 'nickname')}
+    clients = {'addr' : ('conn', 'nickname')}
     assert get_nickname(clients, 'addr') == 'nickname'
 
 
@@ -97,14 +107,43 @@ def test_no_nickname_in_clients():
 
 
 def test_returning_connection():
-    clients = {'addr': ('conn', 'nickname')}
+    clients = {'addr' : ('conn', 'nickname')}
     assert get_connection(clients, 'addr') == 'conn'
 
 
 def test_no_connection_in_clients():
-    clients = {'addr': 'nickname'}
+    clients = {'addr' : 'nickname'}
     with pytest.raises(KeyError):
         get_connection(clients, 'addr2')
+
+
+@mock.patch('server.handle_messages_for_client')
+def test_no_handle_messages_for_no_clients(mock_handle_messages_for_client):
+    clients = {}
+    handle_messages(clients, 'addr')
+    mock_handle_messages_for_client.assert_not_called
+
+
+@mock.patch('server.handle_messages_for_client')
+@mock.patch('server.len')
+def test_handle_messages_one_clients(mock_len, mock_handle_messages_for_client):
+    mock_clients = MagicMock()
+    mock_len.side_effect = [1, 0]
+    handle_messages(mock_clients, 'addr')
+    mock_handle_messages_for_client.assert_called_once
+
+
+@mock.patch('server.handle_received_data')
+@mock.patch('server.get_connection')
+@mock.patch('server.get_nickname')
+def test_handle_messages_for_client(mock_get_nickname, mock_get_connection, mock_handle_received_data):
+    mock_clients = MagicMock()
+    handle_messages_for_client(mock_clients, 'addr')
+    mock_get_nickname.assert_called_once_with(mock_clients, 'addr')
+    nickname = mock_get_nickname.return_value
+    mock_get_connection.assert_called_once_with(mock_clients, 'addr')
+    conn = mock_get_connection.return_value
+    mock_handle_received_data.assert_called_once_with(mock_clients, 'addr', nickname, conn)
 
 
 def test_recv_valid_data():
@@ -150,4 +189,12 @@ def test_broadcast(mock_get_connection):
     broadcast('message', clients, 'addr')
     mock_conn.send.assert_called_once_with('message'.encode())
 
+
+@mock.patch('server.Thread')
+@mock.patch('server.create_socket')
+def test_run_thread_in_main(mock_create_socket, mock_Thread):
+    mock_clients = MagicMock()
+    main()
+    mock_Thread.start.assert_called_once
+    mock_Thread.join.assert_called_once
 
