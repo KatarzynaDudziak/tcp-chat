@@ -12,24 +12,32 @@ def receive_message(nickname, client):
     try:
         message = True
         while message:  # if message == -1 then connection is closed
-            message = client.recv(1024).decode()
-            if message == 'nick':
-                client.send(nickname.encode())
-            else:
-                print(message)
+            handle_recv_message(client, message, nickname)
     except Exception as ex:
         print(ex)
         client.close()
 
 
+def handle_recv_message(client, message, nickname):
+    message = client.recv(1024).decode()
+    if message == 'nick':
+        client.send(nickname.encode())
+    else:
+        print(message)
+
+
 def write_message(client, nickname):
-    while True:
-        try:
-            message = f'{nickname}: {input()}'
-            client.send(message.encode())
-        except:
-            print('Cannot send message')
-            client.close()
+    try:
+        while True:
+            send_message_to_server(client, nickname)
+    except:
+        print('Cannot send message')
+        client.close()    
+
+
+def send_message_to_server(client, nickname):
+    message = f'{nickname}: {input()}'
+    client.send(message.encode())
 
 
 def main():

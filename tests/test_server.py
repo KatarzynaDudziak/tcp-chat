@@ -194,7 +194,7 @@ def test_broadcast(mock_get_connection):
 @mock.patch('server.create_socket')
 def test_run_thread_in_main(mock_create_socket, mock_Thread):
     mock_clients = MagicMock()
-    main()  #main from server.py
+    main()
     mock_Thread.start.assert_called_once
     mock_Thread.join.assert_called_once
 
