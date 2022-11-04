@@ -10,16 +10,17 @@ def create_client(host, port):
 
 def receive_message(nickname, client):
     try:
-        message = True
-        while message:  # if message == -1 then connection is closed
-            handle_recv_message(client, message, nickname)
+        while True:
+            handle_recv_message(client, nickname)
     except Exception as ex:
         print(ex)
         client.close()
 
 
-def handle_recv_message(client, message, nickname):
+def handle_recv_message(client, nickname):
     message = client.recv(1024).decode()
+    if not message:
+        raise Exception
     if message == 'nick':
         client.send(nickname.encode())
     else:

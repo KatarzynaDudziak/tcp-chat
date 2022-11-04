@@ -89,11 +89,8 @@ def main():
     socket = create_socket(HOST, PORT)
     thread_handle_clients = Thread(target=handle_clients, args=(socket, clients))
 
-    try:
-        thread_handle_clients.start()
-        thread_handle_clients.join()
-    except:
-        socket.close()
+    thread_handle_clients.start()
+    thread_handle_clients.join()
 
 
 if __name__ == "__main__":
