@@ -4,6 +4,12 @@ from unittest.mock import MagicMock
 from client import *
 
 
+@pytest.fixture
+def client():
+    client = MagicMock()
+    return client
+
+
 @mock.patch('client.socket.socket')
 def test_create_client(mock_socket):
     host = '123'
@@ -13,50 +19,44 @@ def test_create_client(mock_socket):
 
 
 @mock.patch('client.handle_recv_message')
-def test_recv_message(mock_handle_recv_message):
-    mock_client = MagicMock()
+def test_recv_message(mock_handle_recv_message, client):
     mock_handle_recv_message.side_effect = Exception
-    receive_message('nickname', mock_client)
-    mock_client.close.assert_called_once()
+    receive_message('nickname', client)
+    client.close.assert_called_once()
 
 
-def test_catch_exception_in_handle_message():
-    mock_client = MagicMock()
-    mock_client.recv.return_value.decode.return_value = False
+def test_catch_exception_in_handle_message(client):
+    client.recv.return_value.decode.return_value = False
     with pytest.raises(Exception):
-        handle_recv_message(mock_client, 'nickname')
+        handle_recv_message(client, 'nickname')
 
 
-def test_handle_nick_message():
-    mock_client = MagicMock()
-    mock_client.recv.return_value.decode.return_value = 'nick'
-    handle_recv_message(mock_client, 'nickname')
-    mock_client.send.assert_called_once_with('nickname'.encode())
+def test_handle_nick_message(client):
+    client.recv.return_value.decode.return_value = 'nick'
+    handle_recv_message(client, 'nickname')
+    client.send.assert_called_once_with('nickname'.encode())
 
 
 @mock.patch('client.print')
-def test_handle_correct_message(mock_print):
-    mock_client = MagicMock()
-    mock_client.recv.return_value.decode.return_value = 'message'
-    handle_recv_message(mock_client, 'nickname')
+def test_handle_correct_message(mock_print, client):
+    client.recv.return_value.decode.return_value = 'message'
+    handle_recv_message(client, 'nickname')
     mock_print.assert_called_once_with('message')
 
 
 @mock.patch('client.send_message_to_server')
-def test_catch_exception_in_write_message(mock_send_message_to_server):
-    mock_client = MagicMock()
+def test_catch_exception_in_write_message(mock_send_message_to_server, client):
     mock_send_message_to_server.side_effect = Exception
-    write_message(mock_client, 'nickname')
-    mock_client.close.assert_called_once()
+    write_message(client, 'nickname')
+    client.close.assert_called_once()
 
 
 @mock.patch('client.input')
-def test_send_correct_message_to_server(mock_input):
+def test_send_correct_message_to_server(mock_input, client):
     mock_input.return_value = 'message'
     message = 'nickname: message'
-    mock_client = MagicMock()
-    send_message_to_server(mock_client, 'nickname')
-    mock_client.send.assert_called_once_with(message.encode())
+    send_message_to_server(client, 'nickname')
+    client.send.assert_called_once_with(message.encode())
 
 
 @mock.patch('client.write_message')
