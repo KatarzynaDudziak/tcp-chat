@@ -59,9 +59,7 @@ def test_socket_bind(mock_socket, host, port):
 
 
 @mock.patch('server.socket.socket')
-def test_socket_listen(mock_socket):
-    host = '123'
-    port = 123
+def test_socket_listen(mock_socket, host, port):
     create_socket(host, port)
     mock_socket.return_value.listen.assert_called_once()
 
@@ -142,9 +140,8 @@ def test_no_handle_messages_for_no_clients(mock_handle_messages_for_client, clie
 
 
 @mock.patch('server.handle_messages_for_client')
-@mock.patch('server.len')
-def test_handle_messages_one_client(mock_len, mock_handle_messages_for_client, clients):
-    mock_len.side_effect = [1, 0]
+def test_handle_messages_one_client(mock_handle_messages_for_client, clients):
+    clients.__contains__.side_effect = [True, False]
     handle_messages(clients, 'addr')
     mock_handle_messages_for_client.assert_called_once()
 
