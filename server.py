@@ -33,7 +33,6 @@ def accept_client(socket, clients):
 def send_server_messages_on_client_join(clients, addr):
     nickname = get_nickname(clients, addr)
     conn = get_connection(clients, addr)
-
     print(f'Client {nickname} joined')
     message = f'Hello {nickname} from server to client'
     conn.send(message.encode())
@@ -51,14 +50,13 @@ def get_connection(clients, addr):
 
 
 def handle_messages(clients, addr):
-    while len(clients) > 0:
+    while addr in clients:
         handle_messages_for_client(clients, addr)
 
 
 def handle_messages_for_client(clients, addr):
     nickname = get_nickname(clients, addr)
     conn = get_connection(clients, addr)
-
     handle_received_data(clients, addr, nickname, conn)
 
 
@@ -68,7 +66,6 @@ def handle_received_data(clients, addr, nickname, conn):
         broadcast(f'{nickname} left from server', clients, addr)
         del clients[addr]
         return
-
     message = received_data.decode()
     broadcast(message, clients, addr)
 
