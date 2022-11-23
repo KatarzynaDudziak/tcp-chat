@@ -2,56 +2,55 @@ import socket
 from threading import Thread
 
 
-def create_client(host, port):
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((host, port))
-    return client
+class Client:
+    connection = None
 
+    def __init__(self, host, port, nickname):
+        self.host = host
+        self.port = port
+        self.create_client()
+        self.nickname = nickname
+        receive_thread = Thread(target=self.receive_message)
+        receive_thread.start()
+        self.write_message()
 
-def receive_message(nickname, client):
-    try:
-        while True:
-            handle_recv_message(client, nickname)
-    except Exception as ex:
-        print(ex)
-        client.close()
+    def create_client(self):
+        self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connection.connect((self.host, self.port))
 
+    def receive_message(self):
+        try:
+            while True:
+                self.handle_recv_message()
+        except Exception as ex:
+            print(ex)
+            self.connection.close()
 
-def handle_recv_message(client, nickname):
-    message = client.recv(1024).decode()
-    if not message:
-        raise Exception
-    if message == 'nick':
-        client.send(nickname.encode())
-    else:
-        print(message)
+    def handle_recv_message(self):
+        message = self.connection.recv(1024).decode()
+        if not message:
+            raise Exception
+        if message == 'nick':
+            self.connection.send(self.nickname.encode())
+        else:
+            print(message)
 
+    def write_message(self):
+        try:
+            while True:
+                self.send_message_to_server()
+        except:
+            print('Cannot send message')
+            self.connection.close()    
 
-def write_message(client, nickname):
-    try:
-        while True:
-            send_message_to_server(client, nickname)
-    except:
-        print('Cannot send message')
-        client.close()    
-
-
-def send_message_to_server(client, nickname):
-    message = f'{nickname}: {input()}'
-    client.send(message.encode())
+    def send_message_to_server(self):
+        message = f'{self.nickname}: {input()}'
+        self.connection.send(message.encode())
 
 
 def main():
-    nickname = input("Write your nickname: ") 
-
-    HOST = '127.0.0.1'
-    PORT = 3888
-
-    client = create_client(HOST, PORT)
-    receive_thread = Thread(target=receive_message, args=(nickname, client))
-    receive_thread.start()
-    write_message(client, nickname)   
-
+    nickname = input("Write your nickname: ")
+    client = Client('127.0.0.1', 3888, nickname)
 
 if __name__ == "__main__":
     main()
