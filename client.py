@@ -10,6 +10,7 @@ class Client:
         self.port = port
         self.create_client()
         self.nickname = nickname
+
         receive_thread = Thread(target=self.receive_message)
         receive_thread.start()
         self.write_message()
@@ -46,11 +47,3 @@ class Client:
     def send_message_to_server(self):
         message = f'{self.nickname}: {input()}'
         self.connection.send(message.encode())
-
-
-def main():
-    nickname = input("Write your nickname: ")
-    client = Client('127.0.0.1', 3888, nickname)
-
-if __name__ == "__main__":
-    main()
