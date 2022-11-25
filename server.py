@@ -61,11 +61,17 @@ def handle_messages_for_client(clients, addr):
 
 
 def handle_received_data(clients, addr, nickname, conn):
-    received_data = conn.recv(1024)
-    if not received_data:
+    try:
+        received_data = conn.recv(1024)
+        if not received_data:
+            broadcast(f'{nickname} left from server', clients, addr)
+            del clients[addr]
+            return
+    except:
         broadcast(f'{nickname} left from server', clients, addr)
         del clients[addr]
         return
+
     message = received_data.decode()
     broadcast(message, clients, addr)
 
