@@ -11,9 +11,8 @@ class Client:
         self.create_client()
         self.nickname = nickname
 
-        receive_thread = Thread(target=self.receive_message)
-        receive_thread.start()
-        self.write_message()
+        self.receive_thread = Thread(target=self.receive_message)
+        self.receive_thread.start()
 
     def create_client(self):
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -28,22 +27,24 @@ class Client:
             self.connection.close()
 
     def handle_recv_message(self):
-        message = self.connection.recv(1024).decode()
-        if not message:
+        recv_message = self.connection.recv(1024).decode()
+        if not recv_message:
             raise Exception
-        if message == 'nick':
+        if recv_message == 'nick':
             self.connection.send(self.nickname.encode())
         else:
-            print(message)
+            print(recv_message)
 
-    def write_message(self):
+    def write_message(self, message):
         try:
-            while True:
-                self.send_message_to_server()
+            self.__send_message_to_server(message)
         except:
             print('Cannot send message')
-            self.connection.close()    
+            self.connection.close()
 
-    def send_message_to_server(self):
-        message = f'{self.nickname}: {input()}'
-        self.connection.send(message.encode())
+    def __send_message_to_server(self, message):
+        message_to_send = f'{self.nickname}: {message}'
+        self.connection.send(message_to_send.encode())
+
+    def stop(self):
+        self.connection.close()
