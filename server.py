@@ -64,11 +64,11 @@ def handle_received_data(clients, addr, nickname, conn):
     try:
         received_data = conn.recv(1024)
         if not received_data:
-            broadcast(f'{nickname} left from server', clients, addr)
+            broadcast(f'{nickname} has left the server', clients, addr)
             del clients[addr]
             return
     except:
-        broadcast(f'{nickname} left from server', clients, addr)
+        broadcast(f'{nickname} has left the server', clients, addr)
         del clients[addr]
         return
 
