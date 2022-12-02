@@ -1,16 +1,16 @@
-from PyQt6.QtWidgets import QApplication, QPushButton, QTextBrowser, QTextEdit, QMainWindow, QInputDialog, QLineEdit
+from PyQt6.QtWidgets import QApplication, QPushButton, QTextBrowser, QTextEdit, QMainWindow, QInputDialog, QLineEdit, QMessageBox
 from PyQt6 import uic
 import sys
 from client import Client
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, nickname):
         super(MainWindow, self).__init__()
         uic.loadUi('mainwindow.ui', self)
+        self.nickname = nickname
 
         self.setWindowTitle('Chat')
-        self.show_popup()
         self.client = Client('127.0.0.1', 3888, self.nickname)    
         self.textBrowser.setAcceptRichText(True)
         self.textBrowser.setOpenExternalLinks(True)
@@ -22,14 +22,18 @@ class MainWindow(QMainWindow):
         self.client.write_message(message)
         self.textBrowser.append(message)
         self.textEdit.clear()
+        
+    def closeEvent(self, event):
+        self.client.stop()
+        QMainWindow.closeEvent(self, event)
 
-    def show_popup(self):
-        self.nickname, ok = QInputDialog().getText(self, 'user', 'nickname')
-        if ok and self.nickname:
-            self.textBrowser.append(f'{self.nickname}, welcome on the chat')
+def main():
+    app = QApplication(sys.argv)
+    nickname, ok = QInputDialog().getText(None, 'user', 'nickname')
+    if ok and nickname:
+        window = MainWindow(nickname)
+        window.show()
+        app.exec()
 
-
-app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
-app.exec()
+if __name__=='__main__':
+    main()
