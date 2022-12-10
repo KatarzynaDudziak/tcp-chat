@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QApplication, QPushButton, QTextBrowser, QTextEdit, QMainWindow, QInputDialog, QLineEdit, QMessageBox
 from PyQt6 import uic
 import sys
+import re
 from client import Client
 
 
@@ -20,12 +21,19 @@ class MainWindow(QMainWindow):
     def append_message(self):
         message = self.textEdit.toPlainText()
         self.client.write_message(message)
-        self.textBrowser.append(message)
+        if self.is_not_empty(message):
+            message = re.sub('\n+', ' ', message)
+            self.textBrowser.append(message)
         self.textEdit.clear()
+    
+    def is_not_empty(self, message):
+        if message != '' and message.strip() != '': 
+            return True
         
     def closeEvent(self, event):
         self.client.stop()
         QMainWindow.closeEvent(self, event)
+
 
 def main():
     app = QApplication(sys.argv)
@@ -34,6 +42,7 @@ def main():
         window = MainWindow(nickname)
         window.show()
         app.exec()
+
 
 if __name__=='__main__':
     main()
