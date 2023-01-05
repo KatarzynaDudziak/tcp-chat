@@ -10,6 +10,7 @@ class Client:
         self.port = port
         self.create_client()
         self.nickname = nickname
+        self.send_callback = None
 
         self.receive_thread = Thread(target=self.receive_message)
         self.receive_thread.start()
@@ -17,6 +18,9 @@ class Client:
     def create_client(self):
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection.connect((self.host, self.port))
+
+    def set_callback(self, callback):
+        self.send_callback = callback
 
     def receive_message(self):
         try:
@@ -34,6 +38,8 @@ class Client:
             self.connection.send(self.nickname.encode())
         else:
             print(recv_message)
+            if self.send_callback:
+                self.send_callback(recv_message)
 
     def write_message(self, message):
         try:

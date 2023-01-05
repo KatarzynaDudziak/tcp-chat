@@ -86,7 +86,7 @@ def broadcast(message, clients, addr):
 
 def main():
     HOST = '127.0.0.1'
-    PORT = 3888
+    PORT = 3889
     clients = dict()
 
     socket = create_socket(HOST, PORT)

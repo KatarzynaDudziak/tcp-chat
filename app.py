@@ -12,28 +12,36 @@ class MainWindow(QMainWindow):
         self.client = None
         self.nickname = nickname
         self.setWindowTitle('Chat')
+        self.textBrowser.append('Welcome in chat')
         self.textBrowser.setAcceptRichText(True)
         self.textBrowser.setOpenExternalLinks(True)
         self.pushButtonSend.setCheckable(True)
-        self.pushButtonSend.clicked.connect(self.append_message)
+        self.pushButtonSend.clicked.connect(self.send_message)
 
     def set_client(self, client):
         self.client = client
 
-    def append_message(self):
+    def send_message(self):
         if not self.client:
             return
         message = self.textEdit.toPlainText()
         self.client.write_message(message)
         if self.not_empty(message):
             message = re.sub('\n+', ' ', message)
-            self.textBrowser.append(f'{self.client.nickname}: {message}')
+            self.append_message(message)
+        return message
+        
+    def append_message(self, message):
+        self.textBrowser.append(f'{self.client.nickname}: {message}')
         self.textEdit.clear()
     
     def not_empty(self, message):
-        if message != '' and message.strip() != '': 
+        if message.strip() != '': 
             return True
-        
+    
+    def handle_message(self, message):
+        self.textBrowser.append(message)
+
     def closeEvent(self, event):
         if self.client:
             self.client.stop()
@@ -47,6 +55,7 @@ def main():
     if ok and nickname:
         window = MainWindow(nickname)
         window.set_client(client)
+        client.set_callback(window.handle_message)
         window.show()
         app.exec()
 
