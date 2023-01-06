@@ -2,86 +2,81 @@ import socket
 from threading import Thread
 
 
-def create_socket(host, port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((host, port))
-    s.listen()
-    return s
+class Server:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
 
+    def create_socket(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((self.host, self.port))
+        s.listen()
+        return s
 
-def handle_clients(socket, clients):
-    while True:
-        handle_one_client(socket, clients)
+    def handle_clients(self, socket, clients):
+        while True:
+            self.handle_one_client(socket, clients)
 
-
-def handle_one_client(socket, clients):
-    addr = accept_client(socket, clients)
+    def handle_one_client(self, socket, clients):
+        addr = self.accept_client(socket, clients)
         
-    thread_handle_message = Thread(target=handle_messages, args=(clients, addr))
-    thread_handle_message.start()
+        thread_handle_message = Thread(target=self.handle_messages, args=(clients, addr))
+        thread_handle_message.start()
 
+    def accept_client(self, socket, clients):
+        conn, addr = socket.accept()
+        conn.send('nick'.encode())
+        nickname = conn.recv(1024).decode()
+        clients[addr] = (conn, nickname)
+        self.send_server_messages_on_client_join(clients, addr)
+        return addr
 
-def accept_client(socket, clients):
-    conn, addr = socket.accept()
-    conn.send('nick'.encode())
-    nickname = conn.recv(1024).decode()
-    clients[addr] = (conn, nickname)
-    send_server_messages_on_client_join(clients, addr)
-    return addr
+    def send_server_messages_on_client_join(self, clients, addr):
+        nickname = self.get_nickname(clients, addr)
+        conn = self.get_connection(clients, addr)
+        print(f'Client {nickname} joined')
+        message = f'Hello {nickname} from server to client'
+        conn.send(message.encode())
+        self.broadcast(f'{nickname} joined to server', clients, addr)
 
+    def get_nickname(self, clients, addr):
+        nickname = clients[addr][1]
+        return nickname
 
-def send_server_messages_on_client_join(clients, addr):
-    nickname = get_nickname(clients, addr)
-    conn = get_connection(clients, addr)
-    print(f'Client {nickname} joined')
-    message = f'Hello {nickname} from server to client'
-    conn.send(message.encode())
-    broadcast(f'{nickname} joined to server', clients, addr)
+    def get_connection(self, clients, addr):
+        conn = clients[addr][0]
+        return conn
 
+    def handle_messages(self, clients, addr):
+        while addr in clients:
+            self.handle_messages_for_client(clients, addr)
 
-def get_nickname(clients, addr):
-    nickname = clients[addr][1]
-    return nickname
+    def handle_messages_for_client(self, clients, addr):
+        nickname = self.get_nickname(clients, addr)
+        conn = self.get_connection(clients, addr)
+        self.handle_received_data(clients, addr, nickname, conn)
 
-
-def get_connection(clients, addr):
-    conn = clients[addr][0]
-    return conn
-
-
-def handle_messages(clients, addr):
-    while addr in clients:
-        handle_messages_for_client(clients, addr)
-
-
-def handle_messages_for_client(clients, addr):
-    nickname = get_nickname(clients, addr)
-    conn = get_connection(clients, addr)
-    handle_received_data(clients, addr, nickname, conn)
-
-
-def handle_received_data(clients, addr, nickname, conn):
-    try:
-        received_data = conn.recv(1024)
-        if not received_data:
-            broadcast(f'{nickname} has left the server', clients, addr)
+    def handle_received_data(self, clients, addr, nickname, conn):
+        try:
+            self.received_data = conn.recv(1024)
+            if not self.received_data:
+                self.broadcast(f'{nickname} has left the server', clients, addr)
+                del clients[addr]
+                return
+        except:
+            self.broadcast(f'{nickname} has left the server', clients, addr)
             del clients[addr]
             return
-    except:
-        broadcast(f'{nickname} has left the server', clients, addr)
-        del clients[addr]
-        return
 
-    message = received_data.decode()
-    broadcast(message, clients, addr)
+        message = self.received_data.decode()
+        self.broadcast(message, clients, addr)
 
+    def broadcast(self, message, clients, addr):
+        connection = self.get_connection(clients, addr)
 
-def broadcast(message, clients, addr):
-    connection = get_connection(clients, addr)
-
-    for conn, addr in clients.values():
-        if conn != connection:
-            conn.send(message.encode())
+        for conn, addr in clients.values():
+            if conn != connection:
+                conn.send(message.encode())
 
 
 def main():
@@ -89,8 +84,9 @@ def main():
     PORT = 3889
     clients = dict()
 
-    socket = create_socket(HOST, PORT)
-    thread_handle_clients = Thread(target=handle_clients, args=(socket, clients))
+    server = Server(HOST, PORT)
+    socket = server.create_socket()
+    thread_handle_clients = Thread(target=server.handle_clients, args=(socket, clients))
 
     thread_handle_clients.start()
     thread_handle_clients.join()
