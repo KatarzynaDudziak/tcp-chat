@@ -10,7 +10,7 @@ class Client:
         self.port = port
         self.create_client()
         self.nickname = nickname
-        self.send_callback = None
+        self.receive_callback = None
 
         self.receive_thread = Thread(target=self.receive_message)
         self.receive_thread.start()
@@ -20,14 +20,13 @@ class Client:
         self.connection.connect((self.host, self.port))
 
     def set_callback(self, callback):
-        self.send_callback = callback
+        self.receive_callback = callback
 
     def receive_message(self):
         try:
             while True:
                 self.handle_recv_message()
         except Exception as ex:
-            print(ex)
             self.connection.close()
 
     def handle_recv_message(self):
@@ -37,15 +36,13 @@ class Client:
         if recv_message == 'nick':
             self.connection.send(self.nickname.encode())
         else:
-            print(recv_message)
-            if self.send_callback:
-                self.send_callback(recv_message)
+            if self.receive_callback:
+                self.receive_callback(recv_message)
 
     def write_message(self, message):
         try:
             self.__send_message_to_server(message)
         except:
-            print('Cannot send message')
             self.connection.close()
 
     def __send_message_to_server(self, message):
