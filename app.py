@@ -1,5 +1,6 @@
-from PyQt6.QtWidgets import QApplication, QPushButton, QTextBrowser, QTextEdit, QMainWindow, QInputDialog, QLineEdit, QMessageBox
+from PyQt6.QtWidgets import QApplication, QPushButton, QTextBrowser, QLineEdit, QMainWindow, QInputDialog
 from PyQt6 import uic
+from PyQt6.QtCore import Qt
 import sys
 import re
 from client import Client
@@ -16,6 +17,7 @@ class MainWindow(QMainWindow):
         self.textBrowser.setAcceptRichText(True)
         self.textBrowser.setOpenExternalLinks(True)
         self.pushButtonSend.setCheckable(True)
+        self.lineEdit.returnPressed.connect(self.send_message)
         self.pushButtonSend.clicked.connect(self.send_message)
 
     def set_client(self, client):
@@ -24,7 +26,7 @@ class MainWindow(QMainWindow):
     def send_message(self):
         if not self.client:
             return
-        message = self.textEdit.toPlainText()
+        message = self.lineEdit.text()
         self.client.write_message(message)
         if self.not_empty(message):
             message = re.sub('\n+', ' ', message)
@@ -33,7 +35,7 @@ class MainWindow(QMainWindow):
         
     def append_message(self, message):
         self.textBrowser.append(f'{self.client.nickname}: {message}')
-        self.textEdit.clear()
+        self.lineEdit.clear()
     
     def not_empty(self, message):
         if message.strip() != '': 
@@ -50,7 +52,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    nickname, ok = QInputDialog().getText(None, 'user', 'nickname')
+    nickname, ok = QInputDialog().getText(None, 'User', 'nickname')
     client = Client('127.0.0.1', 3889, nickname)
     if ok and nickname:
         window = MainWindow(nickname)
