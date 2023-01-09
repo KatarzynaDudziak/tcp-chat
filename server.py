@@ -1,5 +1,6 @@
-import socket
-from threading import Thread
+import socket, time, sys
+import threading
+from threading import Thread, Event
 
 
 class Server:
@@ -86,10 +87,13 @@ def main():
 
     server = Server(host, port)
     socket = server.create_socket()
-    thread_handle_clients = Thread(target=server.handle_clients, args=(socket, ))
-
-    thread_handle_clients.start()
-    thread_handle_clients.join()
+    try:
+        thread_handle_clients = Thread(target=server.handle_clients, args=(socket, ))
+        thread_handle_clients.start()
+        while thread_handle_clients.is_alive():
+            thread_handle_clients.join(1)
+    except KeyboardInterrupt:
+        sys.exit()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 from client import Client
+import sys
 
 
 def main():
@@ -6,9 +7,11 @@ def main():
     client = Client('127.0.0.1', 3889, nickname)
     client.set_callback(print)
     while True:
-        client.write_message(input())
-    client.stop()
-
+        try:
+            client.write_message(input())
+        except KeyboardInterrupt:
+            client.stop()
+            sys.exit()
 
 if __name__ == "__main__":
     main()
