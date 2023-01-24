@@ -21,7 +21,7 @@ class Server:
 
     def handle_one_client(self, socket):
         addr = self.accept_client(socket)
-        
+
         thread_handle_message = Thread(target=self.handle_messages, args=(addr, ))
         thread_handle_message.start()
 

@@ -26,7 +26,7 @@ class Client:
         try:
             while True:
                 self.handle_recv_message()
-        except Exception as ex:
+        except Exception:
             self.connection.close()
 
     def handle_recv_message(self):

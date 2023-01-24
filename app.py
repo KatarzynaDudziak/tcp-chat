@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt
 import sys
 import re
 from client import Client
+from datetime import datetime
 
 
 class MainWindow(QMainWindow):
@@ -12,8 +13,8 @@ class MainWindow(QMainWindow):
         uic.loadUi('mainwindow.ui', self)
         self.client = None
         self.nickname = nickname
-        self.setWindowTitle('Chat')
-        self.textBrowser.append('Welcome in chat')
+        self.setWindowTitle('CHAT')
+        self.textBrowser.append(f'Welcome {self.nickname}! Let\'s talk.')
         self.textBrowser.setAcceptRichText(True)
         self.textBrowser.setOpenExternalLinks(True)
         self.pushButtonSend.setCheckable(True)
@@ -34,7 +35,8 @@ class MainWindow(QMainWindow):
         return message
         
     def append_message(self, message):
-        self.textBrowser.append(f'{self.client.nickname}: {message}')
+        date = datetime.now()
+        self.textBrowser.append(f'{self.client.nickname} : {message} {date.strftime(f"%Y-%m-%d %H:%M:%S")}')
         self.lineEdit.clear()
     
     def not_empty(self, message):
@@ -52,7 +54,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    nickname, ok = QInputDialog().getText(None, 'User', 'nickname')
+    nickname, ok = QInputDialog().getText(None, 'USER', 'NICKNAME')
     client = Client('127.0.0.1', 3889, nickname)
     if ok and nickname:
         window = MainWindow(nickname)
