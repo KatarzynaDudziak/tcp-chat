@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QPushButton, QTextBrowser, QLineEdit, QMainWindow, QInputDialog
 from PyQt6 import uic
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication
 import sys
 import re
 from client import Client
@@ -55,14 +55,14 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     nickname, ok = QInputDialog().getText(None, 'USER', 'NICKNAME')
-    client = Client('127.0.0.1', 3889, nickname)
     if ok and nickname:
+        client = Client('127.0.0.1', 3889, nickname)
         window = MainWindow(nickname)
         window.set_client(client)
         client.set_callback(window.handle_message)
         window.show()
         app.exec()
-
+    QCoreApplication.quit()
 
 if __name__=='__main__':
     main()
