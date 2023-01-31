@@ -1,6 +1,8 @@
 import socket, time, sys
 import threading
 from threading import Thread, Event
+from datetime import datetime
+from message import Message
 
 
 class Server:
@@ -22,7 +24,7 @@ class Server:
     def handle_one_client(self, socket):
         addr = self.accept_client(socket)
 
-        thread_handle_message = Thread(target=self.handle_messages, args=(addr, ))
+        thread_handle_message = Thread(target=self.handle_messages, args=(addr,))
         thread_handle_message.start()
 
     def accept_client(self, socket):
@@ -37,9 +39,17 @@ class Server:
         nickname = self.get_nickname(addr)
         conn = self.get_connection(addr)
         print(f'Client {nickname} joined')
-        message = f'Hello {nickname} from server to client'
-        conn.send(message.encode())
-        self.broadcast(f'{nickname} joined to server', addr)
+        date = datetime.now()
+        message = Message()
+        message.publication_date = date.strftime(f"[%Y-%m-%d %H:%M:%S]")
+        message.message = f'Hello {nickname} from server to client'
+        message.author = 'server'
+        conn.send(message.convert_to_str().encode())
+        message_welcome = Message()
+        message_welcome.publication_date = date.strftime(f"[%Y-%m-%d %H:%M:%S]")
+        message_welcome.message = f'{nickname} joined to server'
+        message_welcome.author = 'server'
+        self.broadcast(message_welcome.convert_to_str().encode(), addr)
 
     def get_nickname(self, addr):
         nickname = self.clients[addr][1]
@@ -59,18 +69,24 @@ class Server:
         self.handle_received_data(addr, nickname, conn)
 
     def handle_received_data(self, addr, nickname, conn):
+        date = datetime.now()
+        client_left_message = Message()
+        client_left_message.publication_date = date.strftime(f"[%Y-%m-%d %H:%M:%S]")
+        client_left_message.message = f'{nickname} has left the server'
+        client_left_message.author = 'server'
         try:
             self.received_data = conn.recv(1024)
             if not self.received_data:
-                self.broadcast(f'{nickname} has left the server', addr)
+                self.broadcast(client_left_message.convert_to_str().encode(), addr)
                 del self.clients[addr]
                 return
         except:
-            self.broadcast(f'{nickname} has left the server', addr)
+            self.broadcast(client_left_message.convert_to_str().encode(), addr)
+            print(f'{nickname} has left the server')
             del self.clients[addr]
             return
 
-        message = self.received_data.decode()
+        message = self.received_data
         self.broadcast(message, addr)
 
     def broadcast(self, message, addr):
@@ -78,7 +94,7 @@ class Server:
 
         for conn, addr in self.clients.values():
             if conn != connection:
-                conn.send(message.encode())
+                conn.send(message)
 
 
 def main():
@@ -88,7 +104,7 @@ def main():
     server = Server(host, port)
     socket = server.create_socket()
     try:
-        thread_handle_clients = Thread(target=server.handle_clients, args=(socket, ))
+        thread_handle_clients = Thread(target=server.handle_clients, args=(socket,))
         thread_handle_clients.start()
         while thread_handle_clients.is_alive():
             thread_handle_clients.join(1)

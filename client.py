@@ -1,5 +1,7 @@
 import socket
 from threading import Thread
+from datetime import datetime
+from message import Message
 
 
 class Client:
@@ -26,27 +28,31 @@ class Client:
         try:
             while True:
                 self.handle_recv_message()
-        except Exception:
+        except Exception as ex:
+            print(ex)
             self.connection.close()
 
     def handle_recv_message(self):
         recv_message = self.connection.recv(1024).decode()
         if not recv_message:
-            raise Exception
+            raise Exception("gggg")
         if recv_message == 'nick':
             self.connection.send(self.nickname.encode())
         else:
+            message = Message()
+            message.convert_to_obj(recv_message)
             if self.receive_callback:
-                self.receive_callback(recv_message)
+                self.receive_callback(message)
 
     def write_message(self, message):
         try:
-            self.__send_message_to_server(message)
-        except:
+            self.send_message_to_server(message)
+        except Exception as ex:
+            print(ex)
             self.connection.close()
 
-    def __send_message_to_server(self, message):
-        message_to_send = f'{self.nickname}: {message}'
+    def send_message_to_server(self, message):
+        message_to_send = message.convert_to_str()
         self.connection.send(message_to_send.encode())
 
     def stop(self):
