@@ -28,17 +28,20 @@ class MainWindow(QMainWindow):
     def send_message(self):
         if not self.client:
             return
-        date = datetime.now()
-        user_message = Message()
-        user_message.publication_date = date.strftime(f"[%Y-%m-%d %H:%M:%S]")
-        user_message.message = self.lineEdit.text()
-        user_message.author = self.client.nickname
+        user_message = self.create_message_obj()
         if self.not_empty(user_message.message):
             message = re.sub('\n+', ' ', user_message.message)
         self.client.write_message(user_message)
         self.append_message(user_message)
         return user_message
-  
+
+    def create_message_obj(self):
+        date = datetime.now()
+        user_message = Message()
+        user_message.message = self.lineEdit.text()
+        user_message.author = self.client.nickname
+        return user_message
+
     def append_message(self, user_message):
         self.textBrowser.append(f'{user_message.publication_date} {user_message.author} {user_message.message}')
         self.lineEdit.clear()

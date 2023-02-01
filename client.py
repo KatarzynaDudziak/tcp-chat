@@ -35,7 +35,7 @@ class Client:
     def handle_recv_message(self):
         recv_message = self.connection.recv(1024).decode()
         if not recv_message:
-            raise Exception("gggg")
+            raise Exception
         if recv_message == 'nick':
             self.connection.send(self.nickname.encode())
         else:
@@ -48,12 +48,11 @@ class Client:
         try:
             self.send_message_to_server(message)
         except Exception as ex:
-            print(ex)
             self.connection.close()
 
     def send_message_to_server(self, message):
-        message_to_send = message.convert_to_str()
-        self.connection.send(message_to_send.encode())
+        message_to_send = message.encode()
+        self.connection.send(message_to_send)
 
     def stop(self):
         self.connection.close()

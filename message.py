@@ -1,9 +1,11 @@
 import json
-
+from datetime import datetime
 
 class Message:
     def __init__(self):
-        self.publication_date = None
+        date = datetime.now()
+
+        self.publication_date = date.strftime(f"[%Y-%m-%d %H:%M:%S]")
         self.author = None
         self.message = None
 
@@ -18,4 +20,7 @@ class Message:
         dict_obj = json.loads(json_obj)
         self.publication_date = dict_obj["publication_date"]
         self.author = dict_obj["author"]
-        self.message = dict_obj["message"]    
+        self.message = dict_obj["message"]
+
+    def encode(self):
+        return self.convert_to_str().encode()
