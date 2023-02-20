@@ -2,7 +2,7 @@ import socket
 import time
 import sys
 import threading
-from threading import Thread, Event
+from threading import Thread
 from message import Message
 import queue
 
@@ -11,22 +11,30 @@ class Server:
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self.clients = dict()
+        self.clients = list()
         self.q = queue.Queue()
 
     def start_server(self):
         try:
             client_handler = ClientHandler(self.host, self.port, self.q)
             client_handler.start()
+            # while client_handler.is_alive():
+            #     client_handler.join(1)
             while True:
                 event = self.q.get()
                 if isinstance(event, ServerClient):
-                    # MessageHandler(event)
-                    print(f'client {event.nickname} connected')
+                    self.clients.append(event)
+                    self.send_server_messages(event.addr)
+                    event.start()
+                elif isinstance(event, MessageToServer):
+                    if event.message == 'left':
+                        print('client left')
+                    else:
+                        print('new message')
+                        self.broadcast(event.message, event.sender)
                 else:
                     pass #todo
-        #     while client_handler.is_alive():
-        #         client_handler.join(1)
+        
         except KeyboardInterrupt:
             sys.exit()
 
@@ -52,39 +60,15 @@ class Server:
         self.broadcast(enc_message, addr)
 
     def get_nickname(self, addr):
-        nickname = self.clients[addr][1]
-        return nickname
+        for client in self.clients:
+            if client.addr == addr:
+                return client.nickname
 
     def get_connection(self, addr):
-        conn = self.clients[addr][0]
-        return conn
+        for client in self.clients:
+            if client.addr == addr:
+                return client.conn
 
-    def handle_messages(self, addr):
-        while addr in self.clients:
-            self.handle_messages_for_client(addr)
-
-    def handle_messages_for_client(self, addr):
-        nickname = self.get_nickname(addr)
-        conn = self.get_connection(addr)
-        self.handle_received_data(addr, nickname, conn)
-
-    def handle_received_data(self, addr, nickname, conn):
-        client_left = self.build_client_left_message(nickname)
-        try:
-            self.received_data = conn.recv(1024)
-            if not self.received_data:
-                self.broadcast(client_left, addr)
-                del self.clients[addr]
-                return
-        except:
-            self.broadcast(client_left, addr)
-            print(f'{nickname} has left the server')
-            del self.clients[addr]
-            return
-
-        message = self.received_data
-        self.broadcast(message, addr)
-    
     def build_client_left_message(self, nickname):
         client_left = Message()
         client_left.message = f'{nickname} has left the server'
@@ -92,14 +76,12 @@ class Server:
         enc_message = client_left.encode()
         return enc_message
 
-    def broadcast(self, message, addr):
-        connection = self.get_connection(addr)
+    def broadcast(self, message, conn):
+        for client in self.clients:
+            if client.conn != conn:
+                client.conn.send(message)
 
-        for conn, addr in self.clients.values():
-            if conn != connection:
-                conn.send(message)
-
-
+ 
 class ClientHandler(Thread):
     def __init__(self, host, port, q):
         super().__init__()
@@ -117,7 +99,7 @@ class ClientHandler(Thread):
         conn, addr = self.socket.accept()
         conn.send('nick'.encode())
         nickname = conn.recv(1024).decode()
-        server_client = ServerClient(conn, addr, nickname)
+        server_client = ServerClient(conn, addr, nickname, self.q)
         self.q.put(server_client)
         
     def run(self):
@@ -127,19 +109,70 @@ class ClientHandler(Thread):
 
 
 class MessageHandler(Thread):
-    def __init__(self, server_client):
+    def __init__(self, conn, q):
         super().__init__()
-        self.server_client = server_client
+        self.conn = conn
+        self.q = q
 
+    # def handle_messages(self):
+    #     while self.addr in self.clients:
+    #         self.handle_messages_for_client(addr)
+    
+    # def handle_messages_for_client(self):
+    #     nickname = self.get_nickname()
+    #     conn = self.get_connection()
+    #     self.handle_received_data()
+
+    def handle_received_data(self):
+        # client_left = self.build_client_left_message(nickname)
+        while True:
+            try:
+                received_data = self.conn.recv(1024)
+                if not received_data:
+                    # print(f'Client {nickname} left the server')
+                    # self.broadcast(client_left, addr)
+                    # del self.clients[addr]
+                    # return
+                    message = 'left'
+                    print('Recv data is empty')
+                    obj_message = MessageToServer(message, self.conn)
+                    self.q.put(obj_message)
+                    return
+            except:
+                # self.broadcast(client_left, addr)
+                # print(f'Client {nickname} left the server')
+                # del self.clients[addr]
+                # return
+                message = 'left'
+                print('left due to exception')
+                obj_message = MessageToServer(message, self.conn)
+                self.q.put(obj_message)
+                return
+
+            message = received_data
+            obj_message = MessageToServer(message, self.conn)
+            self.q.put(obj_message)
+        
     def run(self):
-        pass
+        self.handle_received_data()
 
 
 class ServerClient:
-    def __init__(self, conn, addr, nickname):
+    def __init__(self, conn, addr, nickname, q):
         self.conn = conn
         self.addr = addr
         self.nickname = nickname
+        self.q = q
+        self.message_handler = MessageHandler(conn, q)
+
+    def start(self):
+        self.message_handler.start()
+
+
+class MessageToServer:
+    def __init__(self, message, sender):
+        self.message = message
+        self.sender = sender
 
 
 def main():
