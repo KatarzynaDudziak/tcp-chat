@@ -43,9 +43,10 @@ class MainWindow(QMainWindow):
         return user_message
 
     def append_message(self, user_message):
-        self.textBrowser.append(f'{user_message.publication_date} {user_message.author} {user_message.message}')
+        self.textBrowser.append(f'{user_message.publication_date} {user_message.message}')
         self.lineEdit.clear()
 
+#wiadomosci wysylaja sie, bo nigdy nie sa puste (publication_date)
     def not_empty(self, message):
         if message.strip() != '':
             return True
@@ -63,10 +64,9 @@ def main():
     app = QApplication(sys.argv)
     nickname, ok = QInputDialog().getText(None, 'USER', 'NICKNAME')
     if ok and nickname:
-        client = Client('127.0.0.1', 3889, nickname)
         window = MainWindow(nickname)
+        client = Client('127.0.0.1', 3889, nickname, window.handle_message)
         window.set_client(client)
-        client.set_callback(window.handle_message)
         window.show()
         app.exec()
     QCoreApplication.quit()

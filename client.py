@@ -7,12 +7,12 @@ from message import Message
 class Client:
     connection = None
 
-    def __init__(self, host, port, nickname):
+    def __init__(self, host, port, nickname, receive_callback):
         self.host = host
         self.port = port
         self.create_client()
         self.nickname = nickname
-        self.receive_callback = None
+        self.receive_callback = receive_callback
 
         self.receive_thread = Thread(target=self.receive_message)
         self.receive_thread.start()
@@ -21,6 +21,7 @@ class Client:
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection.connect((self.host, self.port))
 
+#W momencie odebrania wiadomosci rzucic exception gdy nie bedzie callbacka i na to test
     def set_callback(self, callback):
         self.receive_callback = callback
 
@@ -29,7 +30,6 @@ class Client:
             while True:
                 self.handle_recv_message()
         except Exception as ex:
-            print(ex)
             self.connection.close()
 
     def handle_recv_message(self):

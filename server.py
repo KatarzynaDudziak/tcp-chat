@@ -18,68 +18,56 @@ class Server:
         try:
             client_handler = ClientHandler(self.host, self.port, self.q)
             client_handler.start()
-            # while client_handler.is_alive():
-            #     client_handler.join(1)
             while True:
                 event = self.q.get()
                 if isinstance(event, ServerClient):
                     self.clients.append(event)
-                    self.send_server_messages(event.addr)
+                    self.send_server_messages(event)
                     event.start()
                 elif isinstance(event, MessageToServer):
                     if event.message == 'left':
-                        print('client left')
+                        self.build_client_left_message(event)
+                        print(f'Client {event.nickname} left')
+                        for client in self.clients:
+                            if client.conn == event.sender:
+                                self.clients.remove(client)
                     else:
-                        print('new message')
                         self.broadcast(event.message, event.sender)
                 else:
                     pass #todo
-        
         except KeyboardInterrupt:
             sys.exit()
 
-    def send_server_messages(self, addr):
-        nickname = self.get_nickname(addr)
-        conn = self.get_connection(addr)
-        print(f'Client {nickname} joined')
-        self.send_welcome_message(nickname, conn)
-        self.send_message_about_client_join(nickname, addr)
+    def send_server_messages(self, client):
+        print(f'Client {client.nickname} joined')
+        self.send_welcome_message(client)
+        self.send_message_about_client_join(client)
 
-    def send_welcome_message(self, nickname, conn):
+    def send_welcome_message(self, client):
         obj_message = Message()
-        obj_message.message = f'Hello {nickname} from server to client'
+        obj_message.message = f'Hello {client.nickname} from server to client'
         obj_message.author = 'server'
         enc_message = obj_message.encode()
-        conn.send(enc_message)
+        client.conn.send(enc_message)
 
-    def send_message_about_client_join(self, nickname, addr):
+    def send_message_about_client_join(self, client):
         obj_message = Message()
-        obj_message.message = f'{nickname} joined to server'
+        obj_message.message = f'{client.nickname} joined to server'
         obj_message.author = 'server'
         enc_message = obj_message.encode()
-        self.broadcast(enc_message, addr)
+        self.broadcast(enc_message, client.conn)
 
-    def get_nickname(self, addr):
-        for client in self.clients:
-            if client.addr == addr:
-                return client.nickname
-
-    def get_connection(self, addr):
-        for client in self.clients:
-            if client.addr == addr:
-                return client.conn
-
-    def build_client_left_message(self, nickname):
+    def build_client_left_message(self, client):
         client_left = Message()
-        client_left.message = f'{nickname} has left the server'
+        client_left.message = f'{client.nickname} has left the server'
         client_left.author = 'server'
         enc_message = client_left.encode()
         return enc_message
 
     def broadcast(self, message, conn):
-        for client in self.clients:
-            if client.conn != conn:
-                client.conn.send(message)
+        for element in self.clients:
+            if element.conn != conn:
+                element.conn.send(message)
 
  
 class ClientHandler(Thread):
@@ -109,48 +97,29 @@ class ClientHandler(Thread):
 
 
 class MessageHandler(Thread):
-    def __init__(self, conn, q):
+    def __init__(self, conn, nickname, q):
         super().__init__()
         self.conn = conn
+        self.nickname = nickname
         self.q = q
 
-    # def handle_messages(self):
-    #     while self.addr in self.clients:
-    #         self.handle_messages_for_client(addr)
-    
-    # def handle_messages_for_client(self):
-    #     nickname = self.get_nickname()
-    #     conn = self.get_connection()
-    #     self.handle_received_data()
-
     def handle_received_data(self):
-        # client_left = self.build_client_left_message(nickname)
         while True:
             try:
                 received_data = self.conn.recv(1024)
                 if not received_data:
-                    # print(f'Client {nickname} left the server')
-                    # self.broadcast(client_left, addr)
-                    # del self.clients[addr]
-                    # return
                     message = 'left'
-                    print('Recv data is empty')
-                    obj_message = MessageToServer(message, self.conn)
+                    obj_message = MessageToServer(message, self.conn, self.nickname)
                     self.q.put(obj_message)
                     return
             except:
-                # self.broadcast(client_left, addr)
-                # print(f'Client {nickname} left the server')
-                # del self.clients[addr]
-                # return
                 message = 'left'
-                print('left due to exception')
-                obj_message = MessageToServer(message, self.conn)
+                obj_message = MessageToServer(message, self.conn, self.nickname)
                 self.q.put(obj_message)
                 return
 
             message = received_data
-            obj_message = MessageToServer(message, self.conn)
+            obj_message = MessageToServer(message, self.conn, self.nickname)
             self.q.put(obj_message)
         
     def run(self):
@@ -163,16 +132,17 @@ class ServerClient:
         self.addr = addr
         self.nickname = nickname
         self.q = q
-        self.message_handler = MessageHandler(conn, q)
+        self.message_handler = MessageHandler(conn, nickname, q)
 
     def start(self):
         self.message_handler.start()
 
 
 class MessageToServer:
-    def __init__(self, message, sender):
+    def __init__(self, message, sender, nickname):
         self.message = message
         self.sender = sender
+        self.nickname = nickname
 
 
 def main():
