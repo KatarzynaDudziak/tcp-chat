@@ -1,10 +1,11 @@
+from socket import timeout
 import socket
 import time
 import sys
 import threading
-from threading import Thread
+from threading import Thread, Event
 from message import Message
-import queue
+from queue import Queue, Empty
 
 
 class Server:
@@ -12,21 +13,26 @@ class Server:
         self.host = host
         self.port = port
         self.clients = list()
-        self.q = queue.Queue()
+        self.q = Queue()
 
     def start_server(self):
         try:
-            client_handler = ClientHandler(self.host, self.port, self.q)
+            stop_event = Event()
+            client_handler = ClientHandler(self.host, self.port, self.q, stop_event)
             client_handler.start()
             while True:
-                event = self.q.get()
-                if isinstance(event, ServerClient):
-                    self.handle_client(event)
-                    event.start()
-                elif isinstance(event, MessageToServer):
-                    self.handle_message(event)
-        except:
-            sys.exit()
+                try:
+                    event = self.q.get(timeout=0.1)
+                    if isinstance(event, ServerClient):
+                        self.handle_client(event)
+                        event.start()
+                    elif isinstance(event, MessageToServer):
+                        self.handle_message(event)
+                except Empty:
+                    pass
+        except KeyboardInterrupt:
+            stop_event.set()
+            client_handler.join()
 
     def handle_client(self, event):
         self.clients.append(event)
@@ -79,67 +85,78 @@ class Server:
 
  
 class ClientHandler(Thread):
-    def __init__(self, host, port, q):
+    def __init__(self, host, port, q, event):
         super().__init__()
         self.host = host
         self.port = port
         self.q = q
         self.create_socket()
+        self.event = event
 
     def create_socket(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((self.host, self.port))
         self.socket = s
+        self.socket.settimeout(1)
 
     def accept_client(self):
-        conn, addr = self.socket.accept()
-        conn.send('nick'.encode())
-        nickname = conn.recv(1024).decode()
-        server_client = ServerClient(conn, addr, nickname, self.q)
-        self.q.put(server_client)
+        try:
+            conn, addr = self.socket.accept()
+            conn.settimeout(1)
+            conn.send('nick'.encode())
+            nickname = conn.recv(1024).decode()
+            server_client = ServerClient(conn, addr, nickname, self.q, self.event)
+            self.q.put(server_client)
+        except timeout:
+            pass
         
     def run(self):
         self.socket.listen()
-        while True:
+        while not self.event.is_set():
             self.accept_client()
 
 
 class MessageHandler(Thread):
-    def __init__(self, conn, nickname, q):
+    def __init__(self, conn, nickname, q, event):
         super().__init__()
         self.conn = conn
         self.nickname = nickname
         self.q = q
+        self.event = event
 
     def handle_received_data(self):
-        while True:
+        while not self.event.is_set():
             try:
                 received_data = self.conn.recv(1024)
                 if not received_data:
-                    message = 'left'
-                    return self.add_message_obj_to_queue(message)
+                    raise Exception()
+            except timeout:
+                continue
             except:
                 message = 'left'
-                return self.add_message_obj_to_queue(message)
+                self.queue_message(message)
+                return
 
             message = received_data
-            self.add_message_obj_to_queue(message)
+            self.queue_message(message)
     
-    def add_message_obj_to_queue(self, message):
+    def queue_message(self, message):
         obj_message = MessageToServer(message, self.conn, self.nickname)
         self.q.put(obj_message)
 
     def run(self):
         self.handle_received_data()
+        self.conn.close()
 
 
 class ServerClient:
-    def __init__(self, conn, addr, nickname, q):
+    def __init__(self, conn, addr, nickname, q, event):
         self.conn = conn
         self.addr = addr
         self.nickname = nickname
         self.q = q
-        self.message_handler = MessageHandler(conn, nickname, q)
+        self.event = event
+        self.message_handler = MessageHandler(conn, nickname, q, event)
 
     def start(self):
         self.message_handler.start()
