@@ -21,22 +21,30 @@ class Server:
             while True:
                 event = self.q.get()
                 if isinstance(event, ServerClient):
-                    self.clients.append(event)
-                    self.send_server_messages(event)
+                    self.handle_client(event)
                     event.start()
                 elif isinstance(event, MessageToServer):
-                    if event.message == 'left':
-                        self.build_client_left_message(event)
-                        print(f'Client {event.nickname} left')
-                        for client in self.clients:
-                            if client.conn == event.sender:
-                                self.clients.remove(client)
-                    else:
-                        self.broadcast(event.message, event.sender)
-                else:
-                    pass #todo
-        except KeyboardInterrupt:
+                    self.handle_message(event)
+        except:
             sys.exit()
+
+    def handle_client(self, event):
+        self.clients.append(event)
+        self.send_server_messages(event)
+
+    def handle_message(self, event):
+        if event.message == 'left':
+            left_message = self.build_client_left_message(event)
+            print(f'Client {event.nickname} left')
+            self.broadcast(left_message, event.sender)
+            self.remove_user(event)
+        else:
+            self.broadcast(event.message, event.sender)
+            
+    def remove_user(self, event):
+        for client in self.clients:
+            if client.conn == event.sender:
+                self.clients.remove(client)
 
     def send_server_messages(self, client):
         print(f'Client {client.nickname} joined')
@@ -109,19 +117,18 @@ class MessageHandler(Thread):
                 received_data = self.conn.recv(1024)
                 if not received_data:
                     message = 'left'
-                    obj_message = MessageToServer(message, self.conn, self.nickname)
-                    self.q.put(obj_message)
-                    return
+                    return self.add_message_obj_to_queue(message)
             except:
                 message = 'left'
-                obj_message = MessageToServer(message, self.conn, self.nickname)
-                self.q.put(obj_message)
-                return
+                return self.add_message_obj_to_queue(message)
 
             message = received_data
-            obj_message = MessageToServer(message, self.conn, self.nickname)
-            self.q.put(obj_message)
-        
+            self.add_message_obj_to_queue(message)
+    
+    def add_message_obj_to_queue(self, message):
+        obj_message = MessageToServer(message, self.conn, self.nickname)
+        self.q.put(obj_message)
+
     def run(self):
         self.handle_received_data()
 
