@@ -2,7 +2,7 @@ import socket
 from threading import Thread
 from datetime import datetime
 from message import Message
-
+from message import Type
 
 class Client:
     connection = None
@@ -21,21 +21,23 @@ class Client:
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection.connect((self.host, self.port))
 
-#W momencie odebrania wiadomosci rzucic exception gdy nie bedzie callbacka i na to test
-    def set_callback(self, callback):
-        self.receive_callback = callback
-
     def receive_message(self):
         try:
             while True:
                 self.handle_recv_message()
-        except Exception as ex:
-            self.connection.close()
+        except:
+            obj_message = Message()
+            obj_message.message = f'Server disconnected'
+            obj_message.author = 'WARNING'
+            obj_message.type = Type.WARNING
+            obj_message.convert_to_str()
+            if self.receive_callback:
+                self.receive_callback(obj_message)
 
     def handle_recv_message(self):
         recv_message = self.connection.recv(1024).decode()
         if not recv_message:
-            raise Exception
+            raise Exception()
         if recv_message == 'nick':
             self.connection.send(self.nickname.encode())
         else:
@@ -56,3 +58,4 @@ class Client:
 
     def stop(self):
         self.connection.close()
+        self.receive_thread.join()

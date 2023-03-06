@@ -1,5 +1,7 @@
 import json
 from datetime import datetime
+from enum import Enum
+
 
 class Message:
     def __init__(self):
@@ -8,6 +10,7 @@ class Message:
         self.publication_date = date.strftime(f"[%Y-%m-%d %H:%M:%S]")
         self.author = None
         self.message = None
+        self.type = Type.USER
 
     def convert_to_str(self):
         message = {"publication_date" : self.publication_date,
@@ -24,3 +27,10 @@ class Message:
 
     def encode(self):
         return self.convert_to_str().encode()
+
+
+class Type(Enum):
+
+    USER = 1
+    INFO = 2
+    WARNING = 3

@@ -6,6 +6,7 @@ import re
 from client import Client
 from datetime import datetime
 from message import Message
+from message import Type
 
 
 class MainWindow(QMainWindow):
@@ -31,9 +32,8 @@ class MainWindow(QMainWindow):
         user_message = self.create_message_obj()
         if self.not_empty(user_message.message):
             message = re.sub('\n+', ' ', user_message.message)
-        self.client.write_message(user_message)
-        self.append_message(user_message)
-        return user_message
+            self.client.write_message(user_message)
+            self.append_message(user_message)
 
     def create_message_obj(self):
         date = datetime.now()
@@ -46,13 +46,13 @@ class MainWindow(QMainWindow):
         self.textBrowser.append(f'{user_message.publication_date} {user_message.message}')
         self.lineEdit.clear()
 
-#wiadomosci wysylaja sie, bo nigdy nie sa puste (publication_date)
     def not_empty(self, message):
-        if message.strip() != '':
-            return True
+        return message.strip() != ''
     
     def handle_message(self, user_message):
-        self.textBrowser.append(f'{user_message.publication_date} {user_message.author} {user_message.message}')
+        if user_message.type == Type.WARNING:
+            self.pushButtonSend.clicked.disconnect()
+        self.textBrowser.append(f'{user_message.publication_date} {user_message.author}: {user_message.message}')
 
     def closeEvent(self, event):
         if self.client:

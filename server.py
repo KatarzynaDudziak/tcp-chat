@@ -5,6 +5,7 @@ import sys
 import threading
 from threading import Thread, Event
 from message import Message
+from message import Type
 from queue import Queue, Empty
 
 
@@ -60,21 +61,24 @@ class Server:
     def send_welcome_message(self, client):
         obj_message = Message()
         obj_message.message = f'Hello {client.nickname} from server to client'
-        obj_message.author = 'server'
+        obj_message.author = 'INFO'
+        obj_message.type = Type.INFO
         enc_message = obj_message.encode()
         client.conn.send(enc_message)
 
     def send_message_about_client_join(self, client):
         obj_message = Message()
         obj_message.message = f'{client.nickname} joined to server'
-        obj_message.author = 'server'
+        obj_message.author = 'INFO'
+        obj_message.type = Type.INFO
         enc_message = obj_message.encode()
         self.broadcast(enc_message, client.conn)
 
     def build_client_left_message(self, client):
         client_left = Message()
         client_left.message = f'{client.nickname} has left the server'
-        client_left.author = 'server'
+        client_left.author = 'INFO'
+        client_left.type = Type.INFO
         enc_message = client_left.encode()
         return enc_message
 
