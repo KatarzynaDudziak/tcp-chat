@@ -10,8 +10,7 @@ def receive_callback_message(message):
 
 def main():
     nickname = input("Write your nickname: ")
-    client = Client('127.0.0.1', 3889, nickname)
-    client.set_callback(receive_callback_message)
+    client = Client('127.0.0.1', 3889, nickname, receive_callback_message)
     while True:
         try:
             date = datetime.now()

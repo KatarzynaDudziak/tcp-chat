@@ -18,6 +18,7 @@ class Server:
 
     def start_server(self):
         try:
+            print('Waiting for clients...')
             stop_event = Event()
             client_handler = ClientHandler(self.host, self.port, self.q, stop_event)
             client_handler.start()
