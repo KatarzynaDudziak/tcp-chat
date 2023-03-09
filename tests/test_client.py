@@ -10,24 +10,21 @@ def test_create_client(mock_socket):
     port = 123
     receive_callback = MagicMock()
     client = Client(host, port, 'nickname', receive_callback)
-    connection = mock_socket.return_value
-    connection.connect.assert_called_once_with((host, port))
+    mock_socket.return_value.connect.assert_called_once_with((host, port))
 
 
 @mock.patch('client.Thread')
 @mock.patch('client.socket.socket')
 @mock.patch('client.Message')
-def test_close_connection_on_exception(message_mock, mock_socket, mock_Thread):
+def test_close_connection_on_exception(mock_Message, mock_socket, mock_Thread):
     host = '123'
     port = 123
     receive_callback = MagicMock()
     client = Client(host, port, 'nickname', receive_callback)
     client.connection.recv.return_value.decode.return_value = False
-    obj_json = {"date" : "publication_date", "name" : "author", "message" : "message", "WARNING" : "type"}
-    message_mock.return_value.convert_to_str.return_value = obj_json
+    obj_message = mock_Message
     client.receive_message()
-    receive_callback.assert_called_once_with(obj_json)
-    
+    receive_callback.assert_called_once_with(obj_message.return_value)
 
 
 @mock.patch('client.Thread')
