@@ -7,6 +7,7 @@ from threading import Thread, Event
 from message import Message
 from message import Type
 from queue import Queue, Empty
+from enum import Enum
 
 
 class Server:
@@ -24,11 +25,11 @@ class Server:
             client_handler.start()
             while True:
                 try:
-                    event = self.q.get(timeout=0.1)
-                    if isinstance(event, ServerClient):
+                    event, event_type = self.q.get(timeout=0.1)
+                    if event_type == Event_Type.ServerClient:
                         self.handle_client(event)
                         event.start()
-                    elif isinstance(event, MessageToServer):
+                    elif event_type == Event_Type.MessageToServer:
                         self.handle_message(event)
                 except Empty:
                     pass
@@ -89,6 +90,12 @@ class Server:
                 element.conn.send(message)
 
  
+class Event_Type(Enum):
+
+    ServerClient = 1
+    MessageToServer = 2
+
+
 class ClientHandler(Thread):
     def __init__(self, host, port, q, event):
         super().__init__()
@@ -111,7 +118,7 @@ class ClientHandler(Thread):
             conn.send('nick'.encode())
             nickname = conn.recv(1024).decode()
             server_client = ServerClient(conn, addr, nickname, self.q, self.event)
-            self.q.put(server_client)
+            self.q.put((server_client, Event_Type.ServerClient))
         except timeout:
             pass
         
@@ -147,7 +154,7 @@ class MessageHandler(Thread):
     
     def queue_message(self, message):
         obj_message = MessageToServer(message, self.conn, self.nickname)
-        self.q.put(obj_message)
+        self.q.put((obj_message, Event_Type.MessageToServer))
 
     def run(self):
         self.handle_received_data()

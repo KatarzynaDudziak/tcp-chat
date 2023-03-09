@@ -30,9 +30,8 @@ class Client:
             obj_message.message = f'The connection has been interrupt. Please try to connect again in a moment.'
             obj_message.author = 'WARNING'
             obj_message.type = Type.WARNING
-            obj_json = obj_message.convert_to_str()
             if self.receive_callback:
-                self.receive_callback(obj_json)
+                self.receive_callback(obj_message)
 
     def handle_recv_message(self):
         recv_message = self.connection.recv(1024).decode()
