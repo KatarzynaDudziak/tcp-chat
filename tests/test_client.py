@@ -37,7 +37,7 @@ def test_catch_exception_in_handle_recv_message(mock_socket, mock_Thread):
     client.connection.recv.return_value.decode.return_value = False
     with pytest.raises(Exception) as ex:
         client.handle_recv_message()
-    assert ex.type is Exception
+        assert ex.type is Exception
 
 
 @mock.patch('client.Thread')
