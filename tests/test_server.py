@@ -6,11 +6,11 @@ from queue import Empty
 from socket import timeout
 
 
-
 @mock.patch('server.Event')
+@mock.patch('server.Server.handle_client')
 @mock.patch('server.ClientHandler')
 @mock.patch('server.Queue')
-def test_client_joined_to_server(mock_Queue, mock_ClientHandler, mock_Event):
+def test_client_joined_to_server(mock_Queue, mock_ClientHandler,mock_handle_client, mock_Event):
     host = '123'
     port = 123
     server = Server(host, port)
