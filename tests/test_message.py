@@ -21,9 +21,9 @@ def test_convert_to_json(mock_datetime):
 
 def test_convert_to_dict():
     message = Message()
-    expected_json = '{"publication_date": "date", "author": "test", "message": "message", "type": 1}'
+    obj_json = '{"publication_date": "date", "author": "test", "message": "message", "type": 1}'
 
-    message.convert_to_obj(expected_json)
+    message.convert_to_obj(obj_json)
 
     assert message.publication_date == 'date'
     assert message.author == 'test'
