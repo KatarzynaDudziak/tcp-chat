@@ -1,8 +1,5 @@
 from socket import timeout
 import socket
-import time
-import sys
-import threading
 from threading import Thread, Event
 from message import Message
 from message import Type

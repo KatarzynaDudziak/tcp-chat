@@ -1,6 +1,4 @@
 from client import Client
-import sys
-from datetime import datetime
 from message import Message
 
 

@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QApplication, QPushButton, QTextBrowser, QLineEdit, QMainWindow, QInputDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog
 from PyQt6 import uic
-from PyQt6.QtCore import Qt, QCoreApplication
+from PyQt6.QtCore import QCoreApplication
 import sys
 import re
 from client import Client

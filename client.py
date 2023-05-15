@@ -1,6 +1,5 @@
 import socket
 from threading import Thread
-from datetime import datetime
 from message import Message
 from message import Type
 

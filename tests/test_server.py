@@ -1,7 +1,7 @@
 import pytest
 from unittest import mock
 from unittest.mock import MagicMock
-from server import Server, ServerClient, Event_Type, ClientHandler, MessageHandler, MessageToServer
+from server import Server, ServerClient, Event_Type, ClientHandler, MessageHandler
 from queue import Empty
 from socket import timeout
 

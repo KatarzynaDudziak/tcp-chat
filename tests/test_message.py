@@ -1,8 +1,5 @@
-import pytest
 from unittest import mock
-from unittest.mock import MagicMock
 from message import Message, Type
-import json
 
 
 @mock.patch('message.datetime')
