@@ -59,7 +59,7 @@ class Server:
 
     def send_welcome_message(self, client):
         obj_message = Message()
-        obj_message.message = f'Hello {client.nickname} from server to client'
+        obj_message.message = f'Hello {client.nickname}. Enjoy your conversation :)'
         obj_message.author = 'INFO'
         obj_message.type = Type.INFO
         enc_message = obj_message.encode()

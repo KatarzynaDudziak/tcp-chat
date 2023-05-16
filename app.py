@@ -2,9 +2,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog
 from PyQt6 import uic
 from PyQt6.QtCore import QCoreApplication
 import sys
-import re
 from client import Client
-from datetime import datetime
 from message import Message
 from message import Type
 
@@ -31,12 +29,10 @@ class MainWindow(QMainWindow):
             return
         user_message = self.create_message_obj()
         if self.not_empty(user_message.message):
-            message = re.sub('\n+', ' ', user_message.message)
             self.client.write_message(user_message)
             self.append_message(user_message)
 
     def create_message_obj(self):
-        date = datetime.now()
         user_message = Message()
         user_message.message = self.lineEdit.text()
         user_message.author = self.client.nickname
