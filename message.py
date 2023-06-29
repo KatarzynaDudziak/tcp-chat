@@ -28,7 +28,7 @@ class Message:
         self.type = Type(dict_obj["type"])
 
     def encode(self):
-        return self.convert_to_str().encode()
+        return self.encode()
 
 
 class Type(IntEnum):

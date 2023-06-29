@@ -2,10 +2,12 @@ import socket
 from threading import Thread
 from message import Message
 from message import Type
+import struct
+
 
 class Client:
     connection = None
-
+    
     def __init__(self, host, port, nickname, receive_callback):
         self.host = host
         self.port = port
@@ -33,7 +35,13 @@ class Client:
                 self.receive_callback(obj_message)
 
     def handle_recv_message(self):
-        recv_message = self.connection.recv(1024).decode()
+        recv_message = None
+        try:
+            header = self.connection.recv(4)
+            message_length = struct.unpack('!I', header)[0]
+            recv_message = self.connection.recv(message_length).decode()
+        except Exception as ex:
+            raise Exception()
         if not recv_message:
             raise Exception()
         if recv_message == 'nick':
@@ -48,10 +56,13 @@ class Client:
         try:
             self.send_message_to_server(message)
         except Exception as ex:
+            print('close')
             self.connection.close()
 
     def send_message_to_server(self, message):
-        message_to_send = message.encode()
+        message_length = len(message.convert_to_str())
+        header = struct.pack('!I', message_length)
+        message_to_send = (header + message.convert_to_str().encode())
         self.connection.send(message_to_send)
 
     def stop(self):

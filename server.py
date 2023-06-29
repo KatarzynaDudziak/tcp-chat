@@ -5,6 +5,7 @@ from message import Message
 from message import Type
 from queue import Queue, Empty
 from enum import Enum
+import struct
 
 
 class Server:
@@ -62,24 +63,33 @@ class Server:
         obj_message.message = f'Hello {client.nickname}. Enjoy your conversation :)'
         obj_message.author = 'INFO'
         obj_message.type = Type.INFO
+        obj_message = obj_message.convert_to_str()
+        message_length = len(obj_message)
+        header = struct.pack('!I', message_length)
         enc_message = obj_message.encode()
-        client.conn.send(enc_message)
+        client.conn.send(header + enc_message)
 
     def send_message_about_client_join(self, client):
         obj_message = Message()
         obj_message.message = f'{client.nickname} joined to server'
         obj_message.author = 'INFO'
         obj_message.type = Type.INFO
+        obj_message = obj_message.convert_to_str()
+        message_length = len(obj_message)
+        header = struct.pack('!I', message_length)
         enc_message = obj_message.encode()
-        self.broadcast(enc_message, client.conn)
+        self.broadcast((header + enc_message), client.conn)
 
     def build_client_left_message(self, client):
         client_left = Message()
         client_left.message = f'{client.nickname} has left the server'
         client_left.author = 'INFO'
         client_left.type = Type.INFO
+        client_left = client_left.convert_to_str()
+        message_length = len(client_left)
+        header = struct.pack('!I', message_length)
         enc_message = client_left.encode()
-        return enc_message
+        return (header + enc_message)
 
     def broadcast(self, message, conn):
         for element in self.clients:
@@ -112,7 +122,10 @@ class ClientHandler(Thread):
         try:
             conn, addr = self.socket.accept()
             conn.settimeout(1)
-            conn.send('nick'.encode())
+            message = 'nick'
+            message_length = len(message)
+            header = struct.pack('!I', message_length)
+            conn.send(header + message.encode())
             nickname = conn.recv(1024).decode()
             server_client = ServerClient(conn, addr, nickname, self.q, self.event)
             self.q.put((server_client, Event_Type.ServerClient))
