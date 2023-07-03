@@ -3,17 +3,19 @@ from threading import Thread
 from message import Message
 from message import Type
 import struct
+import time
+from queue import Queue
 
 
 class Client:
     connection = None
     
-    def __init__(self, host, port, nickname, receive_callback):
+    def __init__(self, host, port, nickname):
         self.host = host
         self.port = port
         self.create_client()
         self.nickname = nickname
-        self.receive_callback = receive_callback
+        self.q = Queue()
 
         self.receive_thread = Thread(target=self.receive_message)
         self.receive_thread.start()
@@ -31,27 +33,38 @@ class Client:
             obj_message.message = f'The connection has been interrupt. Please try to connect again in a moment.'
             obj_message.author = 'WARNING'
             obj_message.type = Type.WARNING
-            if self.receive_callback:
-                self.receive_callback(obj_message)
+            if self.q:
+                self.q.put(obj_message)
 
     def handle_recv_message(self):
         recv_message = None
         try:
             header = self.connection.recv(4)
+            print("--- new message ---")
+            print(f"header: {header}")
             message_length = struct.unpack('!I', header)[0]
+            print(f"length: {message_length}")
             recv_message = self.connection.recv(message_length).decode()
+            print(f"content: {recv_message}")
         except Exception as ex:
+            print(f"exception: {ex}")
             raise Exception()
         if not recv_message:
+            print("connection closed")
             raise Exception()
         if recv_message == 'nick':
             self.connection.send(self.nickname.encode())
         else:
             message = Message()
             message.convert_to_obj(recv_message)
-            if self.receive_callback:
-                self.receive_callback(message)
-
+            if self.q:
+                print("forwarding messasge to app")
+                self.q.put(message)
+                print("forwarded")
+    
+    def get_queue(self):
+        return self.q
+            
     def write_message(self, message):
         try:
             self.send_message_to_server(message)

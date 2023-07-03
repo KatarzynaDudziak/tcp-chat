@@ -46,7 +46,9 @@ class Server:
             self.broadcast(left_message, event.sender)
             self.remove_user(event)
         else:
-            self.broadcast(event.message, event.sender)
+            message_length = len(event.message.decode())
+            header = struct.pack('!I', message_length)
+            self.broadcast((header + event.message), event.sender)
             
     def remove_user(self, event):
         for client in self.clients:
@@ -149,7 +151,9 @@ class MessageHandler(Thread):
     def handle_received_data(self):
         while not self.event.is_set():
             try:
-                received_data = self.conn.recv(1024)
+                header = self.conn.recv(4)
+                message_length = struct.unpack('!I', header)[0]
+                received_data = self.conn.recv(message_length)
                 if not received_data:
                     raise Exception()
             except timeout:
@@ -193,7 +197,7 @@ class MessageToServer:
 
 def main():
     host = '127.0.0.1'
-    port = 3889
+    port = 3819
 
     server = Server(host, port)
     server.start_server()
