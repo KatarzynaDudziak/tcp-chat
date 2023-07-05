@@ -2,13 +2,12 @@ import socket
 from threading import Thread
 from message import Message
 from message import Type
-import struct
-import time
 from queue import Queue
+import struct
 
 
 class Client:
-    connection = None
+    conn = None
     
     def __init__(self, host, port, nickname):
         self.host = host
@@ -21,8 +20,8 @@ class Client:
         self.receive_thread.start()
 
     def create_client(self):
-        self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connection.connect((self.host, self.port))
+        self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.conn.connect((self.host, self.port))
 
     def receive_message(self):
         try:
@@ -36,31 +35,27 @@ class Client:
             if self.q:
                 self.q.put(obj_message)
 
+    def decode(self):
+        header = self.conn.recv(4)
+        message_length = struct.unpack('!I', header)[0]
+        recv_message = self.conn.recv(message_length).decode()
+        return recv_message
+
     def handle_recv_message(self):
         recv_message = None
         try:
-            header = self.connection.recv(4)
-            print("--- new message ---")
-            print(f"header: {header}")
-            message_length = struct.unpack('!I', header)[0]
-            print(f"length: {message_length}")
-            recv_message = self.connection.recv(message_length).decode()
-            print(f"content: {recv_message}")
-        except Exception as ex:
-            print(f"exception: {ex}")
+            recv_message = self.decode()
+        except:
             raise Exception()
         if not recv_message:
-            print("connection closed")
             raise Exception()
         if recv_message == 'nick':
-            self.connection.send(self.nickname.encode())
+            self.conn.send(self.nickname.encode())
         else:
             message = Message()
             message.convert_to_obj(recv_message)
             if self.q:
-                print("forwarding messasge to app")
                 self.q.put(message)
-                print("forwarded")
     
     def get_queue(self):
         return self.q
@@ -68,16 +63,13 @@ class Client:
     def write_message(self, message):
         try:
             self.send_message_to_server(message)
-        except Exception as ex:
-            print('close')
-            self.connection.close()
+        except:
+            self.conn.close()
 
     def send_message_to_server(self, message):
-        message_length = len(message.convert_to_str())
-        header = struct.pack('!I', message_length)
-        message_to_send = (header + message.convert_to_str().encode())
-        self.connection.send(message_to_send)
+        message_to_send = message.encode()
+        self.conn.send(message_to_send)
 
     def stop(self):
-        self.connection.close()
+        self.conn.close()
         self.receive_thread.join()

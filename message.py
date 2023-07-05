@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from enum import IntEnum
+import struct
 
 
 class Message:
@@ -28,7 +29,16 @@ class Message:
         self.type = Type(dict_obj["type"])
 
     def encode(self):
-        return self.encode()
+        message = self.convert_to_str()
+        message_length = len(message)
+        header = struct.pack('!I', message_length)
+        return (header + message.encode())
+    
+    def encode_nickname(self):
+        message = 'nick'
+        message_length = len(message)
+        header = struct.pack('!I', message_length)
+        return (header + message.encode())
 
 
 class Type(IntEnum):

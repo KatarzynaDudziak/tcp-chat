@@ -5,7 +5,6 @@ from message import Message
 from message import Type
 from queue import Queue, Empty
 from enum import Enum
-import struct
 
 
 class Server:
@@ -46,9 +45,7 @@ class Server:
             self.broadcast(left_message, event.sender)
             self.remove_user(event)
         else:
-            message_length = len(event.message.decode())
-            header = struct.pack('!I', message_length)
-            self.broadcast((header + event.message), event.sender)
+            self.broadcast(event.message, event.sender)
             
     def remove_user(self, event):
         for client in self.clients:
@@ -65,33 +62,24 @@ class Server:
         obj_message.message = f'Hello {client.nickname}. Enjoy your conversation :)'
         obj_message.author = 'INFO'
         obj_message.type = Type.INFO
-        obj_message = obj_message.convert_to_str()
-        message_length = len(obj_message)
-        header = struct.pack('!I', message_length)
         enc_message = obj_message.encode()
-        client.conn.send(header + enc_message)
+        client.conn.send(enc_message)
 
     def send_message_about_client_join(self, client):
         obj_message = Message()
         obj_message.message = f'{client.nickname} joined to server'
         obj_message.author = 'INFO'
         obj_message.type = Type.INFO
-        obj_message = obj_message.convert_to_str()
-        message_length = len(obj_message)
-        header = struct.pack('!I', message_length)
         enc_message = obj_message.encode()
-        self.broadcast((header + enc_message), client.conn)
+        self.broadcast(enc_message, client.conn)
 
     def build_client_left_message(self, client):
         client_left = Message()
         client_left.message = f'{client.nickname} has left the server'
         client_left.author = 'INFO'
         client_left.type = Type.INFO
-        client_left = client_left.convert_to_str()
-        message_length = len(client_left)
-        header = struct.pack('!I', message_length)
         enc_message = client_left.encode()
-        return (header + enc_message)
+        return enc_message
 
     def broadcast(self, message, conn):
         for element in self.clients:
@@ -124,10 +112,8 @@ class ClientHandler(Thread):
         try:
             conn, addr = self.socket.accept()
             conn.settimeout(1)
-            message = 'nick'
-            message_length = len(message)
-            header = struct.pack('!I', message_length)
-            conn.send(header + message.encode())
+            message = Message()
+            conn.send(message.encode_nickname())
             nickname = conn.recv(1024).decode()
             server_client = ServerClient(conn, addr, nickname, self.q, self.event)
             self.q.put((server_client, Event_Type.ServerClient))
@@ -151,9 +137,7 @@ class MessageHandler(Thread):
     def handle_received_data(self):
         while not self.event.is_set():
             try:
-                header = self.conn.recv(4)
-                message_length = struct.unpack('!I', header)[0]
-                received_data = self.conn.recv(message_length)
+                received_data = self.conn.recv(1024)
                 if not received_data:
                     raise Exception()
             except timeout:
