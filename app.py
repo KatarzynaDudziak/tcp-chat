@@ -1,10 +1,11 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog
 from PyQt6 import uic
-from PyQt6.QtCore import QCoreApplication
 import sys
 from client import Client
-from message import Message
-from message import Type
+from message import Message, Type
+from queue import Empty
+from threading import Thread
+import time
 
 
 class MainWindow(QMainWindow):
@@ -23,6 +24,11 @@ class MainWindow(QMainWindow):
 
     def set_client(self, client):
         self.client = client
+        
+    def run(self, q):
+        message_receiver = MessageReceiver(q, self.handle_message)
+        message_receiver.daemon = True
+        message_receiver.start()
 
     def send_message(self):
         if not self.client:
@@ -47,8 +53,11 @@ class MainWindow(QMainWindow):
     
     def handle_message(self, user_message):
         if user_message.type == Type.WARNING:
-            self.pushButtonSend.clicked.disconnect()
-        self.textBrowser.append(f'{user_message.publication_date} {user_message.author}: {user_message.message}')
+             self.pushButtonSend.clicked.disconnect()
+        try:
+           self.textBrowser.append(f'{user_message.publication_date} {user_message.author}: {user_message.message}')
+        except Exception as ex:
+             print(ex)
 
     def closeEvent(self, event):
         if self.client:
@@ -56,16 +65,35 @@ class MainWindow(QMainWindow):
         QMainWindow.closeEvent(self, event)
 
 
+class MessageReceiver(Thread):
+    def __init__(self, q, handle_message):
+        super().__init__()
+        self.q = q
+        self.handle_message = handle_message
+
+    def get_message(self):
+        while True:
+            try:
+                item = self.q.get()
+            except Empty:
+                continue
+            else:
+                self.handle_message(item)
+
+    def run(self):
+        self.get_message()
+
+
 def main():
     app = QApplication(sys.argv)
     nickname, ok = QInputDialog().getText(None, 'USER', 'NICKNAME')
     if ok and nickname:
         window = MainWindow(nickname)
-        client = Client('127.0.0.1', 3889, nickname, window.handle_message)
+        client = Client('127.0.0.1', 3819, nickname)
+        window.run(client.get_queue())
         window.set_client(client)
         window.show()
-        app.exec()
-    QCoreApplication.quit()
+        sys.exit(app.exec())
 
 if __name__=='__main__':
     main()

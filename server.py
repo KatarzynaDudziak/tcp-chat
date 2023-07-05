@@ -112,7 +112,8 @@ class ClientHandler(Thread):
         try:
             conn, addr = self.socket.accept()
             conn.settimeout(1)
-            conn.send('nick'.encode())
+            message = Message()
+            conn.send(message.encode_nickname())
             nickname = conn.recv(1024).decode()
             server_client = ServerClient(conn, addr, nickname, self.q, self.event)
             self.q.put((server_client, Event_Type.ServerClient))
@@ -180,7 +181,7 @@ class MessageToServer:
 
 def main():
     host = '127.0.0.1'
-    port = 3889
+    port = 3819
 
     server = Server(host, port)
     server.start_server()
