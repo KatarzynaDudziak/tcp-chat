@@ -6,13 +6,12 @@ from threading import Thread
 
 
 class Client:
-    def __init__(self, host, port, nickname, queue):
-        self.conn = None
+    def __init__(self, host, port, nickname, q):
         self.host = host
         self.port = port
         self.create_client()
         self.nickname = nickname
-        self.q = queue
+        self.q = q
 
         self.receive_thread = Thread(target=self.receive_message)
         self.receive_thread.start()
