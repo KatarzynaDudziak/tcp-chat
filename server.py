@@ -1,10 +1,15 @@
-from socket import timeout
 import socket
-from threading import Thread, Event
-from message import Message
-from message import Type
-from queue import Queue, Empty
 from enum import Enum
+from socket import timeout
+from threading import Thread, Event
+from queue import Queue, Empty
+
+from message import Message, Type
+
+
+class EventType(Enum):
+    ServerClient = 1
+    MessageToServer = 2
 
 
 class Server:
@@ -23,10 +28,10 @@ class Server:
             while True:
                 try:
                     event, event_type = self.q.get(timeout=0.1)
-                    if event_type == Event_Type.ServerClient:
+                    if event_type == EventType.ServerClient:
                         self.handle_client(event)
                         event.start()
-                    elif event_type == Event_Type.MessageToServer:
+                    elif event_type == EventType.MessageToServer:
                         self.handle_message(event)
                 except Empty:
                     pass
@@ -86,12 +91,6 @@ class Server:
             if element.conn != conn:
                 element.conn.send(message)
 
- 
-class Event_Type(Enum):
-
-    ServerClient = 1
-    MessageToServer = 2
-
 
 class ClientHandler(Thread):
     def __init__(self, host, port, q, event):
@@ -116,10 +115,10 @@ class ClientHandler(Thread):
             conn.send(message.encode_nickname())
             nickname = conn.recv(1024).decode()
             server_client = ServerClient(conn, addr, nickname, self.q, self.event)
-            self.q.put((server_client, Event_Type.ServerClient))
+            self.q.put((server_client, EventType.ServerClient))
         except timeout:
             pass
-        
+
     def run(self):
         self.socket.listen()
         while not self.event.is_set():
@@ -139,24 +138,27 @@ class MessageHandler(Thread):
             try:
                 received_data = self.conn.recv(1024)
                 if not received_data:
-                    raise Exception()
+                    return
+                message = received_data
+                self.queue_message(message)
             except timeout:
                 continue
-            except:
+            except ConnectionResetError as e:
+                print(f"ConnectionResetError, {e}")
+                return
+            except Exception as e:
+                print(f"other error: {e}")
                 message = 'left'
                 self.queue_message(message)
                 return
 
-            message = received_data
-            self.queue_message(message)
-    
     def queue_message(self, message):
         obj_message = MessageToServer(message, self.conn, self.nickname)
-        self.q.put((obj_message, Event_Type.MessageToServer))
+        self.q.put((obj_message, EventType.MessageToServer))
 
     def run(self):
         self.handle_received_data()
-        self.conn.close()
+        # self.conn.close()
 
 
 class ServerClient:
