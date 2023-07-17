@@ -47,8 +47,8 @@ class Server:
         if event.message == 'left':
             left_message = self.build_client_left_message(event)
             print(f'Client {event.nickname} left')
-            self.broadcast(left_message, event.sender)
             self.remove_user(event)
+            self.broadcast(left_message, event.sender)
         else:
             self.broadcast(event.message, event.sender)
             
@@ -87,9 +87,9 @@ class Server:
         return enc_message
 
     def broadcast(self, message, conn):
-        for element in self.clients:
-            if element.conn != conn:
-                element.conn.send(message)
+        for client in self.clients:
+            if client.conn != conn:
+                client.conn.send(message)
 
 
 class ClientHandler(Thread):
@@ -138,19 +138,14 @@ class MessageHandler(Thread):
             try:
                 received_data = self.conn.recv(1024)
                 if not received_data:
-                    return
-                message = received_data
-                self.queue_message(message)
+                    message = 'left'
+                    self.queue_message(message)
+                    return                 
             except timeout:
                 continue
-            except ConnectionResetError as e:
-                print(f"ConnectionResetError, {e}")
-                return
-            except Exception as e:
-                print(f"other error: {e}")
-                message = 'left'
-                self.queue_message(message)
-                return
+            else:
+                message = received_data
+                self.queue_message(message)              
 
     def queue_message(self, message):
         obj_message = MessageToServer(message, self.conn, self.nickname)
@@ -158,7 +153,7 @@ class MessageHandler(Thread):
 
     def run(self):
         self.handle_received_data()
-        # self.conn.close()
+        self.conn.close()
 
 
 class ServerClient:

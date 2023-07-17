@@ -1,7 +1,8 @@
 import json
+import struct
+
 from datetime import datetime
 from enum import IntEnum
-import struct
 
 
 class Message:

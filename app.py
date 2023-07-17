@@ -1,10 +1,12 @@
+import sys
+from queue import Queue
+
 from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt6 import uic
-import sys
+
 from client import Client
-from message import Message, Type
-from queue import Queue
+from message import Message
 
 
 class MainWindow(QMainWindow):
@@ -33,7 +35,6 @@ class MainWindow(QMainWindow):
         self.worker_thread.start()
         self.work_requested.emit()
 
-
     def set_client(self, client):
         self.client = client
 
@@ -59,12 +60,7 @@ class MainWindow(QMainWindow):
         return message.strip() != ''
     
     def handle_message(self, user_message):
-        if user_message.type == Type.WARNING:
-             self.pushButtonSend.clicked.disconnect()
-        try:
-           self.textBrowser.append(f'{user_message.publication_date} {user_message.author}: {user_message.message}')
-        except Exception as ex:
-             print(ex)
+        self.textBrowser.append(f'{user_message.publication_date} {user_message.author}: {user_message.message}')
 
     def closeEvent(self, event):
         if self.client:
