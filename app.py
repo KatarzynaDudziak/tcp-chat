@@ -1,5 +1,7 @@
 import sys
-from queue import Queue
+from queue import Queue, Empty
+from threading import Event
+
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
@@ -15,6 +17,7 @@ class MainWindow(QMainWindow):
     def __init__(self, nickname, q):
         super(MainWindow, self).__init__()
         uic.loadUi('mainwindow.ui', self)
+        self.stop_event = Event()
         self.client = None
         self.nickname = nickname
         self.setWindowTitle('CHAT')
@@ -24,7 +27,7 @@ class MainWindow(QMainWindow):
         self.pushButtonSend.setCheckable(True)
         self.lineEdit.returnPressed.connect(self.send_message)
         self.pushButtonSend.clicked.connect(self.send_message)
-        self.worker = Worker(q)
+        self.worker = Worker(q, self.stop_event)
         self.worker_thread = QThread()
 
         self.worker.moveToThread(self.worker_thread)
@@ -34,6 +37,7 @@ class MainWindow(QMainWindow):
 
         self.worker_thread.start()
         self.work_requested.emit()
+
 
     def set_client(self, client):
         self.client = client
@@ -64,6 +68,9 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         if self.client:
+            self.stop_event.set()
+            self.worker_thread.quit()
+            self.worker_thread.wait()
             self.client.stop()
         QMainWindow.closeEvent(self, event)
 
@@ -71,15 +78,20 @@ class MainWindow(QMainWindow):
 class Worker(QObject):
     received_message = pyqtSignal(Message)
 
-    def __init__(self, q):
+    def __init__(self, q, stop_event):
         super().__init__()
         self.q = q
+        self.stop_event = stop_event
 
     @pyqtSlot()
     def do_work(self):
-        while True:
-            item = self.q.get()
-            self.received_message.emit(item)
+        while not self.stop_event.is_set():
+            try:
+                item = self.q.get(timeout=0.1)
+            except Empty:
+                continue
+            else:
+                self.received_message.emit(item)
 
 
 def main():
