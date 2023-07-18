@@ -125,6 +125,13 @@ class ClientHandler(Thread):
             self.accept_client()
 
 
+class MessageToServer:
+    def __init__(self, message, sender, nickname):
+        self.message = message
+        self.sender = sender
+        self.nickname = nickname
+
+
 class MessageHandler(Thread):
     def __init__(self, conn, nickname, q, event):
         super().__init__()
@@ -138,15 +145,21 @@ class MessageHandler(Thread):
             try:
                 received_data = self.conn.recv(1024)
                 if not received_data:
-                    message = 'left'
-                    self.queue_message(message)
+                    self.trigger_remove_client()
                     return                 
             except timeout:
                 continue
+            except ConnectionResetError:
+                self.trigger_remove_client()
+                return
             else:
                 message = received_data
                 self.queue_message(message)              
 
+    def trigger_remove_client(self):
+        message = 'left'
+        self.queue_message(message)
+    
     def queue_message(self, message):
         obj_message = MessageToServer(message, self.conn, self.nickname)
         self.q.put((obj_message, EventType.MessageToServer))
@@ -167,13 +180,6 @@ class ServerClient:
 
     def start(self):
         self.message_handler.start()
-
-
-class MessageToServer:
-    def __init__(self, message, sender, nickname):
-        self.message = message
-        self.sender = sender
-        self.nickname = nickname
 
 
 def main():
