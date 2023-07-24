@@ -5,6 +5,12 @@ from datetime import datetime
 from enum import IntEnum
 
 
+class Type(IntEnum):
+    USER = 1
+    INFO = 2
+    WARNING = 3
+
+
 class Message:
     def __init__(self):
         date = datetime.now()
@@ -40,9 +46,3 @@ class Message:
         message_length = len(message)
         header = struct.pack('!I', message_length)
         return (header + message.encode())
-
-
-class Type(IntEnum):
-    USER = 1
-    INFO = 2
-    WARNING = 3

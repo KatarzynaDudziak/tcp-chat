@@ -2,13 +2,31 @@ import sys
 from queue import Queue, Empty
 from threading import Event
 
-
 from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt6 import uic
 
 from client import Client
 from message import Message
+
+
+class Worker(QObject):
+    received_message = pyqtSignal(Message)
+
+    def __init__(self, q, stop_event):
+        super().__init__()
+        self.q = q
+        self.stop_event = stop_event
+
+    @pyqtSlot()
+    def do_work(self):
+        while not self.stop_event.is_set():
+            try:
+                item = self.q.get(timeout=0.1)
+            except Empty:
+                continue
+            else:
+                self.received_message.emit(item)
 
 
 class MainWindow(QMainWindow):
@@ -31,13 +49,11 @@ class MainWindow(QMainWindow):
         self.worker_thread = QThread()
 
         self.worker.moveToThread(self.worker_thread)
-
         self.work_requested.connect(self.worker.do_work)
         self.worker.received_message.connect(self.handle_message)
 
         self.worker_thread.start()
         self.work_requested.emit()
-
 
     def set_client(self, client):
         self.client = client
@@ -73,25 +89,6 @@ class MainWindow(QMainWindow):
             self.worker_thread.wait()
             self.client.stop()
         QMainWindow.closeEvent(self, event)
-
-
-class Worker(QObject):
-    received_message = pyqtSignal(Message)
-
-    def __init__(self, q, stop_event):
-        super().__init__()
-        self.q = q
-        self.stop_event = stop_event
-
-    @pyqtSlot()
-    def do_work(self):
-        while not self.stop_event.is_set():
-            try:
-                item = self.q.get(timeout=0.1)
-            except Empty:
-                continue
-            else:
-                self.received_message.emit(item)
 
 
 def main():
