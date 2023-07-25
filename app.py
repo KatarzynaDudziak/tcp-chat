@@ -2,7 +2,7 @@ import sys
 from queue import Queue, Empty
 from threading import Event
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog, QScrollBar
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt6 import uic
 
@@ -37,11 +37,13 @@ class MainWindow(QMainWindow):
         uic.loadUi('mainwindow.ui', self)
         self.stop_event = Event()
         self.client = None
+        self.scroll_bar = QScrollBar(self)
         self.nickname = nickname
         self.setWindowTitle('CHAT')
         self.textBrowser.append(f'Welcome {self.nickname}! Let\'s talk.')
         self.textBrowser.setAcceptRichText(True)
         self.textBrowser.setOpenExternalLinks(True)
+        self.textBrowser.setVerticalScrollBar(self.scroll_bar)
         self.pushButtonSend.setCheckable(True)
         self.lineEdit.returnPressed.connect(self.send_message)
         self.pushButtonSend.clicked.connect(self.send_message)
