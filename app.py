@@ -1,6 +1,8 @@
 import sys
 from queue import Queue, Empty
 from threading import Event
+import speech_recognition
+
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QInputDialog, QScrollBar
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
@@ -37,8 +39,8 @@ class MainWindow(QMainWindow):
         uic.loadUi('mainwindow.ui', self)
         self.stop_event = Event()
         self.client = None
-        self.scroll_bar = QScrollBar(self)
         self.nickname = nickname
+        self.scroll_bar = QScrollBar(self)
         self.setWindowTitle('CHAT')
         self.textBrowser.append(f'Welcome {self.nickname}! Let\'s talk.')
         self.textBrowser.setAcceptRichText(True)
@@ -47,6 +49,7 @@ class MainWindow(QMainWindow):
         self.pushButtonSend.setCheckable(True)
         self.lineEdit.returnPressed.connect(self.send_message)
         self.pushButtonSend.clicked.connect(self.send_message)
+        self.pushButton.clicked.connect(self.record_message)
         self.worker = Worker(q, self.stop_event)
         self.worker_thread = QThread()
 
@@ -83,6 +86,25 @@ class MainWindow(QMainWindow):
     
     def handle_message(self, user_message):
         self.textBrowser.append(f'{user_message.publication_date} {user_message.author}: {user_message.message}')
+
+    def record_message(self):
+        recognizer = speech_recognition.Recognizer()
+        user_message = Message()
+
+        with speech_recognition.Microphone() as source:
+            audio_text = recognizer.listen(source)
+            try:
+                user_message.message = recognizer.recognize_google(audio_text, language = 'pl-PL')
+                self.send_recorded_message(user_message)
+            except speech_recognition.UnknownValueError:
+                print('Didn\'t understand')
+            except speech_recognition.RequestError:
+                print('Sorry, speech recognition failed')
+                
+    def send_recorded_message(self, user_message):
+        user_message.author = self.client.nickname
+        self.client.write_message(user_message)
+        self.append_message(user_message)
 
     def closeEvent(self, event):
         if self.client:
