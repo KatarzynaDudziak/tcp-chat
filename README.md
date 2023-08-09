@@ -25,4 +25,4 @@ PyQt6 (used as an example of a GUI app)
 
 ## Usage 
 
-After preparing the setup, you can easily start the app in two steps: first of all, you have to start the server by running `run_server.app` in your console, and after that, you need to run the app by running `run_app.bat` in the second console window.
+After preparing the setup, you can easily start the app in two steps: first of all, you have to start the server by running `run_server.bat` in your console, and after that, you need to run the app by running `run_app.bat` in the second console window.
