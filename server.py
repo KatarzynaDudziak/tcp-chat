@@ -18,6 +18,7 @@ class Server:
         self.port = port
         self.clients = list()
         self.q = Queue()
+        self.builder = Builder()
 
     def start_server(self):
         try:
@@ -45,10 +46,9 @@ class Server:
 
     def handle_message(self, event):
         if event.message == 'left':
-            left_message = self.build_client_left_message(event)
-            print(f'Client {event.nickname} left')
             self.remove_user(event)
-            self.broadcast(left_message, event.sender)
+            self.send_client_left_message(event)
+            print(f'Client {event.nickname} left') 
         else:
             self.broadcast(event.message, event.sender)
             
@@ -63,28 +63,15 @@ class Server:
         self.send_message_about_client_join(client)
 
     def send_welcome_message(self, client):
-        obj_message = Message()
-        obj_message.message = f'Hello {client.nickname}. Enjoy your conversation :)'
-        obj_message.author = 'INFO'
-        obj_message.type = Type.INFO
-        enc_message = obj_message.encode()
-        client.conn.send(enc_message)
+        client.conn.send(self.builder.build_welcome_messsage(client.nickname))
 
     def send_message_about_client_join(self, client):
-        obj_message = Message()
-        obj_message.message = f'{client.nickname} joined to server'
-        obj_message.author = 'INFO'
-        obj_message.type = Type.INFO
-        enc_message = obj_message.encode()
-        self.broadcast(enc_message, client.conn)
+        message = self.builder.build_message_about_client_join(client.nickname)
+        self.broadcast(message, client.conn)
 
-    def build_client_left_message(self, client):
-        client_left = Message()
-        client_left.message = f'{client.nickname} has left the server'
-        client_left.author = 'INFO'
-        client_left.type = Type.INFO
-        enc_message = client_left.encode()
-        return enc_message
+    def send_client_left_message(self, client):
+        message = self.builder.build_client_left_message(client.nickname)
+        self.broadcast(message, client.sender)
 
     def broadcast(self, message, conn):
         for client in self.clients:
@@ -180,6 +167,32 @@ class ServerClient:
 
     def start(self):
         self.message_handler.start()
+
+
+class Builder:
+    def __init__(self):
+        pass
+
+    def build_welcome_messsage(self, nickname):
+        obj_message = Message()
+        obj_message.message = f'Hello {nickname}. Enjoy your conversation :)'
+        obj_message.author = 'INFO'
+        obj_message.type = Type.INFO
+        return obj_message.encode()
+    
+    def build_message_about_client_join(self, nickname):
+        obj_message = Message()
+        obj_message.message = f'{nickname} joined to server'
+        obj_message.author = 'INFO'
+        obj_message.type = Type.INFO
+        return obj_message.encode()
+    
+    def build_client_left_message(self, nickname):
+        obj_message = Message()
+        obj_message.message = f'{nickname} has left the server'
+        obj_message.author = 'INFO'
+        obj_message.type = Type.INFO
+        return obj_message.encode()
 
 
 def main():
