@@ -63,7 +63,7 @@ class Server:
         self.send_message_about_client_join(client)
 
     def send_welcome_message(self, client):
-        client.conn.send(self.builder.build_welcome_messsage(client.nickname))
+        client.conn.send(self.builder.build_welcome_message(client.nickname))
 
     def send_message_about_client_join(self, client):
         message = self.builder.build_message_about_client_join(client.nickname)
@@ -89,9 +89,8 @@ class ClientHandler(Thread):
         self.event = event
 
     def create_socket(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((self.host, self.port))
-        self.socket = s
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind((self.host, self.port))
         self.socket.settimeout(1)
 
     def accept_client(self):
@@ -173,7 +172,7 @@ class Builder:
     def __init__(self):
         pass
 
-    def build_welcome_messsage(self, nickname):
+    def build_welcome_message(self, nickname):
         obj_message = Message()
         obj_message.message = f'Hello {nickname}. Enjoy your conversation :)'
         obj_message.author = 'INFO'
