@@ -155,4 +155,72 @@ def test_check_if_UnicodeDecodeError_occurs(mock_socket, mock_thread, mock_Serve
         client_handler.run()
     
     q.return_value.put.assert_not_called()
-    
+
+   
+@mock.patch('server.Thread')
+@mock.patch('server.MessageToServer')
+def test_received_data(mock_message_to_server, mock_thread):
+    conn = MagicMock()
+    nickname = 'nickname'
+    q = MagicMock()
+    event = MagicMock()
+    message_handler = MessageHandler(conn, nickname, q, event)
+    event.is_set.side_effect = [False, True]
+
+    message_handler.run()
+
+    mock_message_to_server.assert_called_once_with(conn.recv.return_value, conn, nickname)
+    q.put.assert_called_once_with((mock_message_to_server.return_value, EventType.MessageToServer))
+    conn.close.assert_called_once()
+
+
+@mock.patch('server.Thread')
+@mock.patch('server.MessageToServer')
+def test_no_received_data(mock_message_to_server, mock_thread):
+    conn = MagicMock()
+    nickname = 'nickname'
+    q = MagicMock()
+    event = MagicMock()
+    message_handler = MessageHandler(conn, nickname, q, event)
+    conn.recv.return_value = None
+    event.is_set.side_effect = [False, True]
+
+    message_handler.run()
+
+    mock_message_to_server.assert_called_once_with('left', conn, nickname)
+    q.put.assert_called_once_with((mock_message_to_server.return_value, EventType.MessageToServer))
+    event.is_set.assert_called_once()
+
+
+@mock.patch('server.Thread')
+def test_should_repeat_loop_when_recv_throws_timeout(mock_thread):
+    conn = MagicMock()
+    nickname = 'nickname'
+    q = MagicMock()
+    event = MagicMock()
+    expected_calls = [call(), call()]
+    conn.recv.side_effect = [TimeoutError]
+    event.is_set.side_effect = [False, True]
+    message_handler = MessageHandler(conn, nickname, q, event)
+
+    message_handler.run()
+
+    event.is_set.assert_has_calls(expected_calls)
+
+
+@mock.patch('server.Thread')
+@mock.patch('server.MessageToServer')
+def test_should_trigger_remove_client_on_conncection_reset_error(mock_message_to_server, mock_thread):
+    conn = MagicMock()
+    nickname = 'nickname'
+    q = MagicMock()
+    event = MagicMock()
+    conn.recv.side_effect = [ConnectionResetError]
+    event.is_set.side_effect = [False]
+    message_handler = MessageHandler(conn, nickname, q, event)
+
+    message_handler.run()
+
+    mock_message_to_server.assert_called_once_with('left', conn, nickname)
+    q.put.assert_called_once_with((mock_message_to_server.return_value, EventType.MessageToServer))
+    event.is_set.assert_called_once()
