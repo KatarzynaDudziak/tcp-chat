@@ -10,27 +10,27 @@ from socket import timeout
 @mock.patch('server.Event')
 @mock.patch('server.ClientHandler')
 @mock.patch('server.Queue')
-def test_client_joined_to_server(mock_Queue, mock_ClientHandler, mock_Event):
+def test_client_joined_to_server(mock_queue, mock_client_handler, mock_event):
     host = '123'
     port = 123
     server = Server(host, port)
     server_client_mock = MagicMock()
     event = (server_client_mock, EventType.ServerClient)
-    mock_Queue.return_value.get.side_effect = [event, Empty, KeyboardInterrupt]
+    mock_queue.return_value.get.side_effect = [event, Empty, KeyboardInterrupt]
 
     server.start_server()
 
-    mock_ClientHandler.return_value.start.assert_called_once()
+    mock_client_handler.return_value.start.assert_called_once()
     server_client_mock.start.assert_called_once()
-    mock_Event.return_value.set.assert_called_once()
-    mock_ClientHandler.return_value.join.assert_called_once()
+    mock_event.return_value.set.assert_called_once()
+    mock_client_handler.return_value.join.assert_called_once()
 
 
 @mock.patch('server.Builder')
 @mock.patch('server.Event')
 @mock.patch('server.ClientHandler')
 @mock.patch('server.Queue')
-def test_send_messages_to_client(mock_Queue, mock_ClientHandler, mock_Event, mock_Builder):
+def test_should_send_messages_to_client_when_client_join(mock_queue, mock_client_handler, mock_event, mock_builder):
     host = '123'
     port = 123
     server = Server(host, port)
@@ -39,13 +39,13 @@ def test_send_messages_to_client(mock_Queue, mock_ClientHandler, mock_Event, moc
     server_client_mock_2.conn = MagicMock()
     message_mock = MagicMock()
     message_mock.sender = server_client_mock_2.conn
-    calls = [call(mock_Builder.return_value.build_welcome_message.return_value),
-            call(mock_Builder.return_value.build_message_about_client_join.return_value),
+    calls = [call(mock_builder.return_value.build_welcome_message.return_value),
+            call(mock_builder.return_value.build_message_about_client_join.return_value),
             call(message_mock.message)]
     event_client = (server_client_mock, EventType.ServerClient)
     event_client_2 = (server_client_mock_2, EventType.ServerClient)
     event_message = (message_mock, EventType.MessageToServer)
-    mock_Queue.return_value.get.side_effect = [event_client, event_client_2, event_message, KeyboardInterrupt]
+    mock_queue.return_value.get.side_effect = [event_client, event_client_2, event_message, KeyboardInterrupt]
 
     server.start_server()
 
@@ -56,7 +56,7 @@ def test_send_messages_to_client(mock_Queue, mock_ClientHandler, mock_Event, moc
 @mock.patch('server.Event')
 @mock.patch('server.ClientHandler')
 @mock.patch('server.Queue')
-def test_remove_client_from_clients_list(mock_Queue, mock_ClientHandler, mock_Event, mock_Builder):
+def test_should_remove_client_from_clients_list_when_client_left(mock_queue, mock_client_handler, mock_event, mock_builder):
     host = '123'
     port = 123
     server = Server(host, port)
@@ -66,11 +66,11 @@ def test_remove_client_from_clients_list(mock_Queue, mock_ClientHandler, mock_Ev
     message_mock = MagicMock()
     message_mock.message = 'left'
     message_mock.sender = server_client_mock_2.conn
-    calls = [call(mock_Builder.return_value.build_client_left_message.return_value)]
+    calls = [call(mock_builder.return_value.build_client_left_message.return_value)]
     event_client = (server_client_mock, EventType.ServerClient)
     event_client_2 = (server_client_mock_2, EventType.ServerClient)
     event_client_left = (message_mock, EventType.MessageToServer)
-    mock_Queue.return_value.get.side_effect = [event_client, event_client_2, event_client_left, KeyboardInterrupt]
+    mock_queue.return_value.get.side_effect = [event_client, event_client_2, event_client_left, KeyboardInterrupt]
 
     server.start_server()
 
@@ -82,7 +82,7 @@ def test_remove_client_from_clients_list(mock_Queue, mock_ClientHandler, mock_Ev
 @mock.patch('server.ServerClient')
 @mock.patch('server.Thread')
 @mock.patch('server.socket.socket')
-def test_create_socket(mock_socket, mock_thread, mock_ServerClient, mock_queue):
+def test_create_socket(mock_socket, mock_thread, mock_server_client, mock_queue):
     host = '123'
     port = 123
     q = mock_queue
@@ -98,7 +98,7 @@ def test_create_socket(mock_socket, mock_thread, mock_ServerClient, mock_queue):
 @mock.patch('server.ServerClient')
 @mock.patch('server.Thread')
 @mock.patch('server.socket.socket')
-def test_accept_client(mock_socket, mock_thread, mock_ServerClient, mock_message):
+def test_should_put_client_on_clients_list(mock_socket, mock_thread, mock_server_client, mock_message):
     host = '123'
     port = 123
     q = MagicMock()
@@ -114,13 +114,13 @@ def test_accept_client(mock_socket, mock_thread, mock_ServerClient, mock_message
     client_handler.run()
 
     conn.send.assert_called_once_with(mock_message.return_value.encode_nickname.return_value)
-    q.put.assert_called_once_with((mock_ServerClient.return_value, EventType.ServerClient))
+    q.put.assert_called_once_with((mock_server_client.return_value, EventType.ServerClient))
 
 
 @mock.patch('server.ServerClient')
 @mock.patch('server.Thread')
 @mock.patch('server.socket.socket')
-def test_raise_exception_on_accept_client(mock_socket, mock_thread, mock_ServerClient):
+def test_should_back_to_while_loop_when_timeout_occurs(mock_socket, mock_thread, mock_server_client):
     host = '123'
     port = 123
     q = MagicMock()
@@ -139,7 +139,7 @@ def test_raise_exception_on_accept_client(mock_socket, mock_thread, mock_ServerC
 @mock.patch('server.ServerClient')
 @mock.patch('server.Thread')
 @mock.patch('server.socket.socket')
-def test_check_if_UnicodeDecodeError_occurs(mock_socket, mock_thread, mock_ServerClient, mock_message):
+def test_should_raise_value_error_when_decode_gets_incorrect_data(mock_socket, mock_thread, mock_server_client, mock_message):
     host = '123'
     port = 123
     q = MagicMock()
@@ -159,7 +159,7 @@ def test_check_if_UnicodeDecodeError_occurs(mock_socket, mock_thread, mock_Serve
    
 @mock.patch('server.Thread')
 @mock.patch('server.MessageToServer')
-def test_received_data(mock_message_to_server, mock_thread):
+def test_put_message_on_queue_after_recv_data(mock_message_to_server, mock_thread):
     conn = MagicMock()
     nickname = 'nickname'
     q = MagicMock()
@@ -176,7 +176,7 @@ def test_received_data(mock_message_to_server, mock_thread):
 
 @mock.patch('server.Thread')
 @mock.patch('server.MessageToServer')
-def test_no_received_data(mock_message_to_server, mock_thread):
+def test_should_trigger_remove_client_when_no_recv_data(mock_message_to_server, mock_thread):
     conn = MagicMock()
     nickname = 'nickname'
     q = MagicMock()
