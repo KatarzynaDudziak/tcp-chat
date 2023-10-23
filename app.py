@@ -38,7 +38,9 @@ class WorkerSR(QObject):
  
     @pyqtSlot()
     def do_work(self):
+        print('on do work')
         message = self.record_message()
+        print('listening done')
         self.signal.emit(message)
 
     def record_message(self):
@@ -82,15 +84,15 @@ class MainWindow(QMainWindow):
         self.speech_recognizer.moveToThread(self.sr_thread)
 
         self.work_requested.connect(self.worker.do_work)
-        self.work_requested.connect(self.speech_recognizer.do_work)
+        self.pushButton.clicked.connect(self.speech_recognizer.do_work)
 
         self.worker.signal.connect(self.handle_message)
         self.speech_recognizer.signal.connect(self.handle_sr_message)
         
         self.worker_thread.start()
-        self.pushButton.clicked.connect(self.sr_thread.start)
+        self.sr_thread.start()
         self.work_requested.emit()
-    
+
     def set_client(self, client):
         self.client = client
 
