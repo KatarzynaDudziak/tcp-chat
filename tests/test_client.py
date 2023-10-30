@@ -140,7 +140,7 @@ def test_should_back_to_while_loop_when_no_message(mock_thread, mock_event, mock
 @mock.patch('client.Message')
 @mock.patch('client.Event')
 @mock.patch('client.Thread')
-def test_should_catch_connection_aborted_error_after_disconnected(mock_thread, mock_event, mock_message, mock_get_message):
+def test_should_catch__errors_after_disconnected(mock_thread, mock_event, mock_message, mock_get_message):
     conn = MagicMock()
     q = MagicMock()
     nickname = MagicMock()
