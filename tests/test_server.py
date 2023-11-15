@@ -1,5 +1,4 @@
 import pytest
-from unittest import mock
 from unittest.mock import call, MagicMock
 from server import Server, ServerClient, EventType, ClientHandler, MessageHandler
 from message import Message
