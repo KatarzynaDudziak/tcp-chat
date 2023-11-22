@@ -1,3 +1,4 @@
+
 import pytest
 import json
 import struct
@@ -53,21 +54,20 @@ def test_should_close_connection(mock_message_handler, mock_event, mock_socket):
     conn.close.assert_called_once()
 
 
-def test_should_decode_message():
+@mock.patch('client.struct')
+def test_should_receive_and_decode_message(mock_struct):
     conn = MagicMock()
-    author = 'author'
-    content = 'message'
-    message = {'author' : author,
-         'message' : content}
-    json_obj = json.dumps(message)
-    header = (struct.pack('!I', len(json_obj)))
-    encode_message = json_obj.encode()
-    conn.recv.side_effect = [header, encode_message]
+    recv_message_mock = MagicMock()
+    conn.recv.side_effect = ['12', recv_message_mock]
+    calls = [call(4), call(mock_struct.unpack.return_value.__getitem__.return_value)]
 
-    return_message = get_message(conn)
+    recv_message = get_message(conn)
 
-    assert return_message == json_obj
-
+    conn.recv.assert_has_calls(calls)
+    mock_struct.unpack.assert_called_once_with('!I', '12')
+    mock_struct.unpack.return_value.__getitem__.assert_called_once_with(0)
+    assert recv_message == recv_message_mock.decode.return_value
+    
 
 def test_should_raise_connection_aborted_error_when_empty_header():
     conn = MagicMock()
