@@ -38,9 +38,7 @@ class WorkerSR(QObject):
  
     @pyqtSlot()
     def do_work(self):
-        print('on do work')
         message = self.record_message()
-        print('listening done')
         self.signal.emit(message)
 
     def record_message(self):
