@@ -12,6 +12,8 @@ class Type(IntEnum):
 
 
 class Message:
+    NICK = 'nick'
+
     def __init__(self):
         date = datetime.now()
 
@@ -35,14 +37,13 @@ class Message:
         self.message = dict_obj["message"]
         self.type = Type(dict_obj["type"])
 
-    def encode(self):
+    def encode_message(self):
         message = self.convert_to_str()
         message_length = len(message)
         header = struct.pack('!I', message_length)
         return (header + message.encode())
     
-    def encode_nickname(self):
-        message = 'nick'
-        message_length = len(message)
+    def encode_nickname(self, NICK):
+        message_length = len(NICK)
         header = struct.pack('!I', message_length)
-        return (header + message.encode())
+        return (header + NICK.encode())
